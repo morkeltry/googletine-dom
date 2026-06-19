@@ -110,11 +110,39 @@ async function initializeBrowser() {
     console.log('=== TESTING SEARCH FOR "CATS" ===\n');
     await navigateAndWait('https://www.youtube.com/results?search_query=cats');
 
-    await delay(2000);
-
     const searchTitles = await extractVideoTitles();
     console.log('\n=== SEARCH RESULTS VIDEO TITLES ===');
     searchTitles.forEach((title, i) => {
+        console.log(`${i + 1}. ${title}`);
+    });
+    console.log('===================================\n');
+
+    // Third init request after ~6 seconds (randomized +/- 10%)
+    const wait3 = Math.round(6000 * (0.9 + Math.random() * 0.2));
+    console.log(`=== WAITING ${wait3}ms BEFORE THIRD INIT REQUEST ===\n`);
+    await delay(wait3);
+
+    console.log('=== TESTING SEARCH FOR "DOGS" ===\n');
+    await navigateAndWait('https://www.youtube.com/results?search_query=dogs');
+
+    const dogsTitles = await extractVideoTitles();
+    console.log('\n=== SEARCH RESULTS VIDEO TITLES ===');
+    dogsTitles.forEach((title, i) => {
+        console.log(`${i + 1}. ${title}`);
+    });
+    console.log('===================================\n');
+
+    // Fourth init request after ~31 seconds (randomized +/- 10%)
+    const wait4 = Math.round(31000 * (0.9 + Math.random() * 0.2));
+    console.log(`=== WAITING ${wait4}ms BEFORE FOURTH INIT REQUEST ===\n`);
+    await delay(wait4);
+
+    console.log('=== TESTING SEARCH FOR "PIGS" ===\n');
+    await navigateAndWait('https://www.youtube.com/results?search_query=pigs');
+
+    const pigsTitles = await extractVideoTitles();
+    console.log('\n=== SEARCH RESULTS VIDEO TITLES ===');
+    pigsTitles.forEach((title, i) => {
         console.log(`${i + 1}. ${title}`);
     });
     console.log('===================================\n');
