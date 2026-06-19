@@ -23,6 +23,10 @@ const CONSENT_SELECTORS = [
 // Helper function for delays
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+// Global browser and page instances
+let browser;
+let page;
+
 /**
  * Find and click the consent accept button
  */
@@ -52,65 +56,70 @@ async function clickConsentButton(page) {
 }
 
 /**
- * Capture the rendered DOM and cookies
+ * Initialize browser and handle consent once on startup
  */
-async function capturePage(page) {
-    const dom = await page.evaluate(() => document.documentElement.outerHTML);
-    const cookies = await page.cookies();
-    return { dom, cookies };
-}
+async function initializeBrowser() {
+    console.log('Initializing browser and handling consent...');
 
-/**
- * Process a YouTube request
- */
-async function processYouTubeRequest() {
-    const browser = await puppeteer.launch({
+    browser = await puppeteer.launch({
         headless: 'new',
         defaultViewport: { width: 1920, height: 1080 },
         args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
-    try {
-        const page = await browser.newPage();
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
+    page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
 
-        // Navigate to YouTube homepage
-        await page.goto('https://www.youtube.com', {
-            waitUntil: 'domcontentloaded',
-            timeout: 30000
-        });
+    // Navigate to YouTube homepage
+    await page.goto('https://www.youtube.com', {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
+    });
 
-        // Handle consent
-        await clickConsentButton(page);
-        await delay(2000);
+    // Handle consent
+    console.log('Handling consent dialog...');
+    await clickConsentButton(page);
+    await delay(2000);
 
-        // Capture DOM and cookies
-        const { dom, cookies } = await capturePage(page);
-
-        await browser.close();
-        return { success: true, dom, cookies };
-
-    } catch (error) {
-        await browser.close();
-        return { success: false, error: error.message };
-    }
+    const cookies = await page.cookies();
+    console.log(`Browser initialized with ${cookies.length} cookies`);
 }
 
-// Request endpoint - returns YouTube homepage
+/**
+ * Capture the rendered DOM
+ */
+async function captureDOM() {
+    const dom = await page.evaluate(() => document.documentElement.outerHTML);
+    return dom;
+}
+
+/**
+ * Navigate to a URL and wait for content to load
+ */
+async function navigateAndRender(url) {
+    await page.goto(url, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
+    });
+
+    // Wait for content to settle
+    await delay(2000);
+
+    return await captureDOM();
+}
+
+// Request endpoint - returns rendered YouTube page
 app.get('/request', async (req, res) => {
-    console.log(`[${new Date().toISOString()}] Processing request`);
+    const url = req.query.url || 'https://www.youtube.com';
+    console.log(`[${new Date().toISOString()}] Processing request for: ${url}`);
 
     try {
-        const result = await processYouTubeRequest();
+        const dom = await navigateAndRender(url);
 
-        if (result.success) {
-            res.setHeader('Content-Type', 'text/html');
-            res.send(result.dom);
-            console.log(`[${new Date().toISOString()}] ✓ Success: ${result.dom.length} bytes, ${result.cookies.length} cookies`);
-        } else {
-            res.status(500).json({ error: result.error });
-            console.log(`[${new Date().toISOString()}] ✗ Failed: ${result.error}`);
-        }
+        res.setHeader('Content-Type', 'text/html');
+        res.send(dom);
+        console.log(`[${new Date().toISOString()}] ✓ Success: ${dom.length} bytes`);
+
     } catch (error) {
         res.status(500).json({ error: error.message });
         console.log(`[${new Date().toISOString()}] ✗ Error: ${error.message}`);
@@ -118,13 +127,27 @@ app.get('/request', async (req, res) => {
 });
 
 // Health check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req, res) => {
+    const browserStatus = browser ? 'running' : 'not initialized';
+    res.json({
+        status: 'ok',
+        browser: browserStatus,
+        timestamp: new Date().toISOString()
+    });
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`YouTube DOM Server listening on port ${PORT}`);
-    console.log(`GET  http://localhost:${PORT}/request`);
-    console.log(`GET  http://localhost:${PORT}/health`);
+async function startServer() {
+    await initializeBrowser();
+
+    app.listen(PORT, () => {
+        console.log(`YouTube DOM Server listening on port ${PORT}`);
+        console.log(`GET  http://localhost:${PORT}/request?url=<youtube-url>`);
+        console.log(`GET  http://localhost:${PORT}/health`);
+    });
+}
+
+startServer().catch(err => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
 });
