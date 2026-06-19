@@ -97,28 +97,9 @@ async function captureAndSaveDOM(v, q) {
         return document.documentElement.outerHTML;
     });
 
-    // Inject inline JS to remove consent elements after page load and every 30 seconds
-    const cleanupScript = `
-    <script>
-    (function() {
-        function removeConsentElements() {
-            const backdrop = document.querySelector('tp-yt-iron-overlay-backdrop');
-            if (backdrop) backdrop.remove();
-
-            const lightbox = document.querySelector('ytd-consent-bump-v2-lightbox');
-            if (lightbox) lightbox.remove();
-
-            console.log('Removed consent elements');
-        }
-
-        // Run immediately
-        removeConsentElements();
-
-        // Run every 30 seconds
-        setInterval(removeConsentElements, 30000);
-    })();
-    </script>
-    `;
+    const dom = await page.evaluate(() => {
+        return document.documentElement.outerHTML;
+    });
 
     console.log(`DOM captured: ${dom.length} bytes`);
 
