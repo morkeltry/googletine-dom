@@ -1,148 +1,157 @@
 # Googletine
 
-Payment-based proxy node for circumventing loginwalls and paywalls.
+**A "choice of algorithm" service.** The content can be YouTube videos (or, later, other
+platforms), but the *feed* is built by an algorithm **you** pick — not the platform's. Micro-payments
+(planned: [MPP](https://mpp.dev)) gate access; an agent can auto-pay so it feels frictionless.
 
-## Architecture
+> ⚠️ **This codebase is mid-experiment and not yet cleaned up.** It currently holds **two largely
+> independent systems** plus a pile of research scripts. This README is a map so you can navigate it.
 
-- **Server**: Accepts requests from clients, validates payments, serves content with cookie injection
-- **Client**: Forwards browser requests to server nodes, handles payment flow
+---
 
-## Quick Start
+## The two systems (read this first)
 
+| | What it is | Run it | Port |
+|---|---|---|---|
+| **`live-algo/`** | **The current direction.** A live, stateful prototype: one persistent headless-Chromium YouTube session per "lens" (Developer / Cat Lover). Click a video → the session watches it → the feed evolves. Search + a blended Home. | `node live-algo/server.mjs` | **7100** |
+| **`client/` + `server/`** | **The legacy proxy.** A two-node payment proxy: the *client* sits in front of your browser and forwards to the *server*, which pays a (stubbed) toll and fetches the page with persona cookies injected. | `npm run start-server` & `npm run start-client` | **7070** / **6060** |
+
+Everything else (`shared/`, `guil-cli.js`, `consent-automation/`, `test-*.js`) supports the legacy proxy
+or is standalone research.
+
+### Quick start
 ```bash
-# Install dependencies
 npm install
 
-# Start server (port 7070)
-npm run start-server
+# The current prototype:
+node live-algo/server.mjs            # → open http://localhost:7100
 
-# Start client (port 6060)
-npm run start-client
+# OR the legacy proxy (two terminals):
+npm run start-server                 # :7070
+npm run start-client                 # :6060  → curl http://localhost:6060/request/example.com
 ```
 
-## API Endpoints
+---
 
-### Client Endpoints (Port 6060)
+## Annotated file tree
 
-The client forwards requests to the server and handles the payment flow.
-
-#### Transparent GET Requests (Copy-Paste Friendly)
-
-You can copy a URL from your browser and paste it directly after `/request/`:
-
-```bash
-# Copy and paste format - no encoding needed!
-curl http://localhost:6060/request/youtube.com/watch?v=dQw4w9WgXcQ
-
-# With https:// prefix
-curl http://localhost:6060/request/https://youtube.com/watch?v=dQw4w9WgXcQ
-
-# With persona parameter (gets stripped before forwarding)
-curl http://localhost:6060/request/youtube.com/watch?v=123&persona=my-persona-id
-
-# With use_persona parameter
-curl http://localhost:6060/request/youtube.com?use_persona=true
+```
+googletine/
+│
+├── live-algo/                         ★ THE CURRENT PROTOTYPE (live, stateful)
+│   ├── server.mjs                     Express + persistent Puppeteer. One live YouTube session per
+│   │                                  lens; REST API: /api/feed, /api/search, /api/watch, /api/home
+│   │                                  (Home = our own feed, blended from the session's activity).
+│   └── public/
+│       └── index.html                 Single-page app that mirrors & drives the sessions: click→watch
+│                                      →feed evolves, search, blended Home, in-page YouTube embed player.
+│
+├── client/                            LEGACY proxy — "client node" (sits in front of your browser, :6060)
+│   └── express/
+│       ├── constants.js               Client config: remote node list, port 6060, session timeout.
+│       └── src/
+│           ├── index.js               Startup: listen + retry on EADDRINUSE, SIGHUP shutdown.
+│           ├── server.js              Express app + routes (/request, /request/*, /health, /).
+│           ├── forwardRequest.js      Core: forward request to a server node, run the 402→pay→retry
+│           │                          loop, stream the response back to the browser.
+│           └── personas.js            Client-side YouTube persona loading / rotation helpers.
+│
+├── server/                            LEGACY proxy — "server node" (does the fetching, :7070)
+│   ├── express/
+│   │   ├── constants.js               Server config: port 7070, canned medium/twitter cookies, pricing.
+│   │   └── src/
+│   │       ├── index.js               Startup (same retry/SIGHUP pattern as the client).
+│   │       ├── server.js              Express app + routes (/request, /personas, /session, /health).
+│   │       ├── acceptPageRequest.js   Core: validate payment, fetch URL with persona cookies injected,
+│   │       │                          render 402 pages, rewrite Set-Cookie to localhost, stream back.
+│   │       └── openSession.js         In-memory session create / get / cleanup (placeholder).
+│   ├── data/
+│   │   └── .googletine-db.json        Persisted personas database (gitignored).
+│   └── dom-server.js                  Standalone EXPERIMENT (:60123): serves rendered YouTube via a
+│                                      Puppeteer DOM forwarder. Separate from the express server above.
+│
+├── shared/                            Libraries used by the legacy proxy + the CLI
+│   ├── personas/
+│   │   ├── Persona.js                 Base Persona: cookies, headers, state, Set-Cookie parsing.
+│   │   └── PersonaManager.js          Base persona pool: rotation strategies, expiry, stats.
+│   ├── providers/
+│   │   ├── index.js                   Provider exports + createPersonaManager(provider) factory.
+│   │   ├── youtube.js                 YouTubePersona + manager (YouTube cookie logic, consent init).
+│   │   ├── twitter.js                 TwitterPersona + manager (Twitter/X).
+│   │   └── youtube-consent-handler.js Puppeteer helper that clicks through YouTube's consent dialog.
+│   └── payments/
+│       ├── stub.js                    Stubbed payments (doPayment / receivePayment / requestPayment).
+│       │                              This is the seam where MPP will plug in. Always "succeeds".
+│       └── headers.js                 X-Payment / X-Payment-Required header encode + parse helpers.
+│
+├── guil-cli.js                        CLI to create / list / test / delete personas (see CLI.md).
+│                                      Reads & writes server/data/.googletine-db.json.
+│
+├── consent-automation/                Standalone research tool (its own package.json)
+│   ├── automate-consent.js            Opens YouTube cookie-free, clicks "Accept", captures
+│   │                                  screenshots + cookies + network activity.
+│   ├── automate-consent-headless.js   Headless variant of the above.
+│   ├── output/                        Captured screenshots (*.png) and cookie snapshots (*.json).
+│   └── package.json / -lock.json      Its own dependencies.
+│
+├── consentautomation/                 ⚠️ near-duplicate folder — only a README documenting the
+│   └── README.md                      consent-flow findings (the code lives in consent-automation/).
+│
+├── youtube-dom-forwarder.js           Standalone Puppeteer EXPERIMENT: open YouTube, handle consent,
+│                                      search a list of terms, return the rendered DOM. (Superseded in
+│                                      spirit by live-algo/, kept for reference.)
+│
+├── overlay-analysis.txt               Research notes on YouTube's grey-overlay problem.
+│
+├── test-*.js                          Ad-hoc experiment / smoke scripts (NOT a real test runner):
+│   ├── test-cli.js                    Tests for guil-cli.js  (this is what `npm test` runs).
+│   ├── test-personas.js               Persona management checks.
+│   ├── test-rotation.js               Persona rotation suite.
+│   ├── test-cookie-injection.js       Cookie injection check.
+│   ├── test-header-proxying.js        Header/cookie proxying via curl.
+│   ├── test-transparent-requests.js   Transparent GET (/request/<url>) checks.
+│   ├── test-youtube-cookies.js        Inspect what cookies YouTube returns on a fresh request.
+│   └── test-youtube-dom-forwarder.js  Exercise youtube-dom-forwarder.js.
+│
+├── test-results.log                   Captured output from a past test run.
+├── CLI.md                             Guide for guil-cli.js (the persona CLI).
+├── package.json                       Deps (express, puppeteer, cookie-parser) + npm scripts.
+└── README.md                          You are here.
 ```
 
-#### Query String Format
+---
 
-```bash
-# URL as query parameter
-curl "http://localhost:6060/request?url=https://youtube.com"
+## npm scripts (`package.json`)
 
-# With persona
-curl "http://localhost:6060/request?url=https://youtube.com&persona=my-id"
-```
+| Script | Does |
+|---|---|
+| `npm run start-server` / `start-client` | Boot the legacy proxy nodes (:7070 / :6060). |
+| `npm run watch-server` / `watch-client` | Same, via nodemon (auto-restart on change). |
+| `npm run stop` / `stop-server` / `stop-client` | Kill the proxy nodes. |
+| `npm run persona -- <args>` | Run the persona CLI (`guil-cli.js`). See `CLI.md`. |
+| `npm test` | Runs `test-cli.js` (note: just one of the ad-hoc scripts). |
 
-#### Other Client Endpoints
+> The live-algo prototype is **not** in npm scripts yet — run it directly: `node live-algo/server.mjs`.
 
-```bash
-# Health check
-curl http://localhost:6060/health
+---
 
-# Info and available endpoints
-curl http://localhost:6060/
-```
+## Known rough edges (cleanup candidates)
 
-### Server Endpoints (Port 7070)
+- **Two systems in one repo** — the new `live-algo/` and the legacy `client/`+`server/` proxy are
+  mostly independent; only the legacy side uses `shared/` and `guil-cli.js`.
+- **Duplicate consent folders** — `consent-automation/` (code) vs `consentautomation/` (just a README).
+- **Scattered `test-*.js`** at the root are experiment scripts, not a test suite; only `test-cli.js`
+  is wired to `npm test`.
+- **Multiple Puppeteer entrypoints** — `live-algo/server.mjs`, `server/dom-server.js`,
+  `youtube-dom-forwarder.js`, and `consent-automation/*` all drive a browser in different ways.
+- **`server/express/src/index.js`** crashes on `EADDRINUSE` (buggy `netstat` parse) — free the port first.
+- **Payments are stubbed** (`shared/payments/stub.js`) — MPP integration is the planned replacement.
 
-The server accepts requests, validates payments, and serves content.
+## Ports at a glance
 
-#### GET Requests
-
-```bash
-# Direct URL path (most transparent)
-curl http://localhost:7070/request/youtube.com
-
-# With query string
-curl "http://localhost:7070/request?url=https://youtube.com"
-
-# With persona parameter
-curl "http://localhost:7070/request?url=https://youtube.com&persona=persona-123"
-```
-
-#### POST Requests (Original Format)
-
-```bash
-curl -X POST http://localhost:7070/request \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://www.youtube.com/results?search_query=pigs",
-    "payment": {
-      "success": true,
-      "transactionId": "test-1234567890",
-      "amount": 1000
-    },
-    "personaId": "persona-1781711823510-d7ytm25gr"
-  }'
-```
-
-#### Other Server Endpoints
-
-```bash
-# Health check and endpoint list
-curl http://localhost:7070/health
-
-# List all loaded personas
-curl http://localhost:7070/personas
-
-# Show server statistics
-curl http://localhost:7070/personas/stats
-
-# Reload personas from database
-curl -X POST http://localhost:7070/personas/reload
-
-# Session management
-curl http://localhost:7070/session
-curl http://localhost:7070/session/session-id-here
-```
-
-### Local Parameters
-
-When using GET requests, these parameters are handled locally and stripped before proxying to the destination:
-
-- `persona` - Specify which persona ID to use for the request
-- `use_persona` - Set to `true` to enable persona rotation (if configured)
-
-Example: `curl "http://localhost:6060/request/youtube.com?persona=my-id&use_persona=true"`
-
-## Payment Flow
-
-1. Client forwards request to server without payment
-2. Server returns 402 with payment request
-3. Client executes payment (stubbed for now)
-4. Client retries request with payment
-5. Server validates payment and serves content
-
-## TODO: MPP Integration
-
-The payment functions in `shared/payments/stub.js` are placeholders for MPP integration:
-- `doPayment()` - Client-side payment execution
-- `receivePayment()` - Server-side payment validation
-- `requestPayment()` - Server-side payment request generation
-
-## Configuration
-
-Environment variables:
-- `GOOGLETINE_SERVER_PORT` - Server port (default: 7070)
-- `GOOGLETINE_CLIENT_PORT` - Client port (default: 6060)
+| Port | Process |
+|---|---|
+| 6060 | legacy client node |
+| 7070 | legacy server node |
+| 7100 | live-algo prototype |
+| 60123 | `server/dom-server.js` (experiment) |
