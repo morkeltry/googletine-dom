@@ -28,23 +28,61 @@ let browser;
 let page;
 
 /**
+ * Get VISITOR_PRIVACY_METADATA cookie value
+ */
+function getPrivacyMetadata(cookies) {
+    const cookie = cookies.find(c => c.name === 'VISITOR_PRIVACY_METADATA');
+    return cookie ? cookie.value : null;
+}
+
+/**
+ * Extract video titles from current page
+ */
+async function extractVideoTitles() {
+    const titles = await page.evaluate(() => {
+        const results = [];
+        const titleElements = document.querySelectorAll('#video-title, h3, a#video-title');
+
+        titleElements.forEach(el => {
+            const title = el.textContent?.trim();
+            if (title && title.length > 5 && !results.includes(title)) {
+                results.push(title);
+            }
+        });
+
+        return results.slice(0, 10);
+    });
+
+    return titles;
+}
+
+/**
  * Find and click the consent accept button
  */
 async function clickConsentButton(page) {
+    console.log('Looking for consent button...');
+
     for (const selector of CONSENT_SELECTORS) {
         try {
             const button = await page.$(selector);
             if (button) {
                 const isVisible = await button.isIntersectingViewport();
                 if (isVisible) {
+                    const text = await button.evaluate(el => el.textContent || '').trim();
+                    console.log(`Found button: "${text}" (${selector})`);
+
                     await button.scrollIntoView();
                     await delay(500);
                     await button.click();
+
                     try {
                         await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 });
+                        console.log('Navigation after click');
                     } catch (e) {
+                        console.log('No navigation (AJAX consent)');
                         await delay(2000);
                     }
+
                     return true;
                 }
             }
@@ -52,14 +90,47 @@ async function clickConsentButton(page) {
             // Continue to next selector
         }
     }
+
+    console.log('No consent button found');
     return false;
+}
+
+/**
+ * Navigate and wait for page to fully load
+ */
+async function navigateAndWait(url) {
+    console.log(`Navigating to: ${url}`);
+
+    const cookies = await page.cookies();
+    const privacyCookie = getPrivacyMetadata(cookies);
+    console.log(`Before request - VISITOR_PRIVACY_METADATA: ${privacyCookie ? privacyCookie.substring(0, 30) + '...' : 'null'}`);
+
+    await page.goto(url, {
+        waitUntil: 'networkidle2',
+        timeout: 30000
+    });
+
+    console.log('Waiting for JS to complete...');
+    await page.waitForFunction(() => {
+        return document.readyState === 'complete' &&
+               typeof window.ytInitialData !== 'undefined';
+    }, { timeout: 15000 }).catch(() => {});
+
+    await delay(2000);
+    console.log('Page loaded');
+
+    const afterCookies = await page.cookies();
+    const afterPrivacy = getPrivacyMetadata(afterCookies);
+    console.log(`After request - VISITOR_PRIVACY_METADATA: ${afterPrivacy ? afterPrivacy.substring(0, 30) + '...' : 'null'}`);
+
+    return afterCookies;
 }
 
 /**
  * Initialize browser and handle consent once on startup
  */
 async function initializeBrowser() {
-    console.log('Initializing browser and handling consent...');
+    console.log('=== INITIALIZING BROWSER ===\n');
 
     browser = await puppeteer.launch({
         headless: 'new',
@@ -71,18 +142,42 @@ async function initializeBrowser() {
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
 
     // Navigate to YouTube homepage
-    await page.goto('https://www.youtube.com', {
-        waitUntil: 'domcontentloaded',
-        timeout: 30000
-    });
+    await navigateAndWait('https://www.youtube.com');
 
     // Handle consent
-    console.log('Handling consent dialog...');
-    await clickConsentButton(page);
+    console.log('\nHandling consent dialog...');
+    const clicked = await clickConsentButton(page);
+
+    if (clicked) {
+        await delay(3000);
+    }
+
+    // Wait for feed to render
+    console.log('Waiting for feed to render...');
+    await delay(3000);
+
+    // Extract and show video titles
+    console.log('\n=== HOMEPAGE VIDEO TITLES ===');
+    const titles = await extractVideoTitles();
+    titles.forEach((title, i) => {
+        console.log(`${i + 1}. ${title}`);
+    });
+    console.log('============================\n');
+
+    // Test search for cats
+    console.log('=== TESTING SEARCH FOR "CATS" ===\n');
+    await navigateAndWait('https://www.youtube.com/results?search_query=cats');
+
     await delay(2000);
 
-    const cookies = await page.cookies();
-    console.log(`Browser initialized with ${cookies.length} cookies`);
+    const searchTitles = await extractVideoTitles();
+    console.log('\n=== SEARCH RESULTS VIDEO TITLES ===');
+    searchTitles.forEach((title, i) => {
+        console.log(`${i + 1}. ${title}`);
+    });
+    console.log('===================================\n');
+
+    console.log('=== INITIALIZATION COMPLETE ===\n');
 }
 
 /**
@@ -97,21 +192,7 @@ async function captureDOM() {
  * Navigate to a URL and wait for content to load
  */
 async function navigateAndRender(url) {
-    await page.goto(url, {
-        waitUntil: 'networkidle2',
-        timeout: 30000
-    });
-
-    // Wait for JavaScript to finish processing
-    // Wait until document is complete and YouTube data is loaded
-    await page.waitForFunction(() => {
-        return document.readyState === 'complete' &&
-               typeof window.ytInitialData !== 'undefined';
-    }, { timeout: 15000 }).catch(() => {});
-
-    // Additional wait for any remaining JS processing
-    await delay(2000);
-
+    const cookies = await navigateAndWait(url);
     return await captureDOM();
 }
 
