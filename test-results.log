@@ -1,0 +1,55 @@
+=== Starting Persona Management Test ===
+
+Making 5 requests to YouTube...
+
+Request 1:
+  ✓ Success (1479728 bytes)
+  Active personas: 1
+    - persona-1781711145556-dzt9sx2g... (requests: 1)
+
+Request 2:
+  ✓ Success (1689537 bytes)
+  Active personas: 1
+    - persona-1781711145556-dzt9sx2g... (requests: 2)
+
+Request 3:
+  ✓ Success (1695622 bytes)
+  Active personas: 1
+    - persona-1781711145556-dzt9sx2g... (requests: 3)
+
+Request 4:
+  ✓ Success (1695399 bytes)
+  Active personas: 1
+    - persona-1781711145556-dzt9sx2g... (requests: 4)
+
+Request 5:
+  ✓ Success (1691339 bytes)
+  Active personas: 1
+    - persona-1781711145556-dzt9sx2g... (requests: 5)
+
+=== Final Stats ===
+{
+  "totalRequests": 5,
+  "totalPersonasCreated": 1,
+  "rotationCount": 4,
+  "activePersonas": 1,
+  "totalPersonas": 1,
+  "provider": "youtube",
+  "cookieCoverage": {
+    "CONSENT": 1,
+    "VISITOR_INFO1_LIVE": 1,
+    "YSC": 1,
+    "__Secure-YEC": 1,
+    "__Secure-YENID": 1,
+    "VISITOR_PRIVACY_METADATA": 1,
+    "PREF": 0,
+    "SID": 0,
+    "HSID": 0,
+    "SSID": 0,
+    "APISID": 0,
+    "SAPISID": 0
+  },
+  "averageCookiesPerPersona": 6
+}
+
+=== Test Complete ===

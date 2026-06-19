@@ -1,0 +1,10 @@
+node_modules/
+npm-debug.log
+.env
+.DS_Store
+*.swp
+*.swo
+*~
+youtube/
+server/data/.googletine-db.json
+.googletine-config.json

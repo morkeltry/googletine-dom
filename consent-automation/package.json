@@ -1,0 +1,14 @@
+{
+  "name": "youtube-consent-automation",
+  "version": "1.0.0",
+  "description": "YouTube consent flow automation using Puppeteer",
+  "type": "module",
+  "scripts": {
+    "install": "npm install puppeteer",
+    "start": "node automate-consent.js",
+    "test": "node automate-consent.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.11.0"
+  }
+}
