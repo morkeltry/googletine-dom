@@ -26,6 +26,9 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 let browser;
 let page;
 
+// Configuration
+const FIX_LINKS = true; // Replace relative YouTube links with absolute URLs
+
 /**
  * Get VISITOR_PRIVACY_METADATA cookie value
  */
@@ -87,19 +90,37 @@ async function navigateAndWait(url) {
 }
 
 /**
- * Capture the rendered DOM and save to file
+ * Capture the rendered DOM, remove consent elements, fix links, and save to file
  */
 async function captureAndSaveDOM(v, q) {
-    const dom = await page.evaluate(() => document.documentElement.outerHTML);
-    console.log(`DOM captured: ${dom.length} bytes`);
+    const dom = await page.evaluate(() => {
+        let html = document.documentElement.outerHTML;
+
+        // Brute force: Remove consent dialog elements
+        html = html.replace(/<tp-yt-iron-overlay-backdrop[^>]*>.*?<\/tp-yt-iron-overlay-backdrop>/gi, '');
+        html = html.replace(/<ytd-consent-bump-v2-lightbox[^>]*>.*?<\/ytd-consent-bump-v2-lightbox>/gi, '');
+        html = html.replace(/<tp-yt-paper-dialog[^>]*consent[^>]*>.*?<\/tp-yt-paper-dialog>/gi, '');
+
+        return html;
+    });
+
+    console.log(`DOM captured: ${dom.length} bytes (after consent removal)`);
+
+    // Fix relative YouTube links to absolute URLs
+    let processedDom = dom;
+    if (FIX_LINKS) {
+        processedDom = processedDom.replace(/href="\/watch\?v=([^"]+)"/gi, 'href="https://www.youtube.com/watch?v=$1"');
+        processedDom = processedDom.replace(/href="\/shorts\/([^"]+)"/gi, 'href="https://www.youtube.com/shorts/$1"');
+        console.log(`Fixed YouTube links to absolute URLs`);
+    }
 
     // Save to file for later analysis
     const filename = `${v}-${q}-${Date.now()}.html`;
     const filepath = join(OUTPUT_DIR, filename);
-    writeFileSync(filepath, dom);
+    writeFileSync(filepath, processedDom);
     console.log(`Saved to: ${filename}`);
 
-    return dom;
+    return processedDom;
 }
 
 /**
