@@ -9,17 +9,6 @@ const app = express();
 
 app.use(express.json());
 
-// YouTube consent button selectors
-const CONSENT_SELECTORS = [
-    'button[aria-label*="Accept"]',
-    'button[aria-label*="accept"]',
-    'button:has-text("Accept")',
-    'button:has-text("Accept & Continue")',
-    'button:has-text("I agree")',
-    'ytd-button-overlay',
-    '#yDmbB',
-];
-
 // Helper function for delays
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -57,46 +46,18 @@ async function extractVideoTitles() {
 }
 
 /**
- * Find and click the consent accept button
+ * Strip all scripts from HTML
  */
-async function clickConsentButton(page) {
-    console.log('Looking for consent button...');
-
-    for (const selector of CONSENT_SELECTORS) {
-        try {
-            const button = await page.$(selector);
-            if (button) {
-                const isVisible = await button.isIntersectingViewport();
-                if (isVisible) {
-                    const text = await button.evaluate(el => el.textContent || '').trim();
-                    console.log(`Found button: "${text}" (${selector})`);
-
-                    await button.scrollIntoView();
-                    await delay(500);
-                    await button.click();
-
-                    try {
-                        await page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 5000 });
-                        console.log('Navigation after click');
-                    } catch (e) {
-                        console.log('No navigation (AJAX consent)');
-                        await delay(2000);
-                    }
-
-                    return true;
-                }
-            }
-        } catch (e) {
-            // Continue to next selector
-        }
-    }
-
-    console.log('No consent button found');
-    return false;
+function stripScripts(html) {
+    return html
+        .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, '')
+        .replace(/<script\b[^>]*\/>/gi, '')
+        .replace(/on\w+="[^"]*"/gi, '') // Remove inline event handlers
+        .replace(/on\w+='[^']*'/gi, '');
 }
 
 /**
- * Navigate and wait for page to fully load
+ * Navigate and wait for page to fully load (without clicking consent)
  */
 async function navigateAndWait(url) {
     console.log(`Navigating to: ${url}`);
@@ -127,7 +88,7 @@ async function navigateAndWait(url) {
 }
 
 /**
- * Initialize browser and handle consent once on startup
+ * Initialize browser (without handling consent)
  */
 async function initializeBrowser() {
     console.log('=== INITIALIZING BROWSER ===\n');
@@ -143,14 +104,6 @@ async function initializeBrowser() {
 
     // Navigate to YouTube homepage
     await navigateAndWait('https://www.youtube.com');
-
-    // Handle consent
-    console.log('\nHandling consent dialog...');
-    const clicked = await clickConsentButton(page);
-
-    if (clicked) {
-        await delay(3000);
-    }
 
     // Wait for feed to render
     console.log('Waiting for feed to render...');
@@ -181,22 +134,33 @@ async function initializeBrowser() {
 }
 
 /**
- * Capture the rendered DOM
+ * Capture the rendered DOM with scripts stripped
  */
-async function captureDOM() {
+async function captureDOMStripped() {
     const dom = await page.evaluate(() => document.documentElement.outerHTML);
-    return dom;
+    const stripped = stripScripts(dom);
+    console.log(`DOM captured: ${dom.length} bytes -> ${stripped.length} bytes (stripped)`);
+    return stripped;
 }
 
 /**
- * Navigate to a URL and wait for content to load
+ * Navigate to a URL, wait for content, extract titles, and return stripped DOM
  */
 async function navigateAndRender(url) {
-    const cookies = await navigateAndWait(url);
-    return await captureDOM();
+    await navigateAndWait(url);
+
+    // Extract and log video titles before serving
+    console.log('\n=== VIDEO TITLES FOR REQUEST ===');
+    const titles = await extractVideoTitles();
+    titles.forEach((title, i) => {
+        console.log(`${i + 1}. ${title}`);
+    });
+    console.log('==================================\n');
+
+    return await captureDOMStripped();
 }
 
-// Request endpoint - returns rendered YouTube page
+// Request endpoint - returns rendered YouTube page with scripts stripped
 app.get('/request', async (req, res) => {
     const url = req.query.url || 'https://www.youtube.com';
     console.log(`[${new Date().toISOString()}] Processing request for: ${url}`);
