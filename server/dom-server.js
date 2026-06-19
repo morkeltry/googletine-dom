@@ -94,20 +94,33 @@ async function navigateAndWait(url) {
  */
 async function captureAndSaveDOM(v, q) {
     const dom = await page.evaluate(() => {
-        let html = document.documentElement.outerHTML;
-
-        // Brute force: Remove consent dialog elements
-        // Self-closing backdrop (no closing tag)
-        html = html.replace(/<tp-yt-iron-overlay-backdrop[^>]*>/gi, '');
-        // Full lightbox element with content
-        html = html.replace(/<ytd-consent-bump-v2-lightbox[^>]*>.*?<\/ytd-consent-bump-v2-lightbox>/gi, '');
-        // Consent-related dialog
-        html = html.replace(/<tp-yt-paper-dialog[^>]*consent[^>]*>.*?<\/tp-yt-paper-dialog>/gi, '');
-
-        return html;
+        return document.documentElement.outerHTML;
     });
 
-    console.log(`DOM captured: ${dom.length} bytes (after consent removal)`);
+    // Inject inline JS to remove consent elements after page load and every 30 seconds
+    const cleanupScript = `
+    <script>
+    (function() {
+        function removeConsentElements() {
+            const backdrop = document.querySelector('tp-yt-iron-overlay-backdrop');
+            if (backdrop) backdrop.remove();
+
+            const lightbox = document.querySelector('ytd-consent-bump-v2-lightbox');
+            if (lightbox) lightbox.remove();
+
+            console.log('Removed consent elements');
+        }
+
+        // Run immediately
+        removeConsentElements();
+
+        // Run every 30 seconds
+        setInterval(removeConsentElements, 30000);
+    })();
+    </script>
+    `;
+
+    console.log(`DOM captured: ${dom.length} bytes`);
 
     // Fix relative YouTube links to absolute URLs
     let processedDom = dom;
@@ -116,6 +129,32 @@ async function captureAndSaveDOM(v, q) {
         processedDom = processedDom.replace(/href="\/shorts\/([^"]+)"/gi, 'href="https://www.youtube.com/shorts/$1"');
         console.log(`Fixed YouTube links to absolute URLs`);
     }
+
+    // Inject inline JS to remove consent elements after page load and every 30 seconds
+    const cleanupScript = `
+    <script>
+    (function() {
+        function removeConsentElements() {
+            const backdrop = document.querySelector('tp-yt-iron-overlay-backdrop');
+            if (backdrop) backdrop.remove();
+
+            const lightbox = document.querySelector('ytd-consent-bump-v2-lightbox');
+            if (lightbox) lightbox.remove();
+
+            console.log('Removed consent elements');
+        }
+
+        // Run immediately
+        removeConsentElements();
+
+        // Run every 30 seconds
+        setInterval(removeConsentElements, 30000);
+    })();
+    </script>
+    `;
+
+    // Insert the script before closing body tag
+    processedDom = processedDom.replace('</body>', cleanupScript + '</body>');
 
     // Save to file for later analysis
     const filename = `${v}-${q}-${Date.now()}.html`;
