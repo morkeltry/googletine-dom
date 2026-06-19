@@ -172,12 +172,9 @@ const modifyCookieForLocalhost = (cookieString) => {
 	const cookie = parseSetCookie(cookieString);
 	if (!cookie) return cookieString;
 
-	// Change domain to localhost (NO PORT - browsers reject ports in cookie domains)
-	cookie.attrs.set('domain', 'localhost');
-
-	// Remove Secure flag since we're serving on HTTP
-	cookie.attrs.delete('secure');
-
+	// parseSetCookie() already drops the Secure flag, and rebuildSetCookie()
+	// already rewrites any domain= attribute to localhost. (attrs is an array of
+	// attribute strings, not a Map — calling .set()/.delete() here used to throw.)
 	return rebuildSetCookie(cookie);
 };
 
