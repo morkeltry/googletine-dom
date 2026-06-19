@@ -97,10 +97,6 @@ async function captureAndSaveDOM(v, q) {
         return document.documentElement.outerHTML;
     });
 
-    const dom = await page.evaluate(() => {
-        return document.documentElement.outerHTML;
-    });
-
     console.log(`DOM captured: ${dom.length} bytes`);
 
     // Fix relative YouTube links to absolute URLs
