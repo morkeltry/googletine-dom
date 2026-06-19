@@ -120,8 +120,8 @@ async function processYouTubeRequest(searchTerm) {
 }
 
 // Request endpoint
-app.post('/request', async (req, res) => {
-    const { url } = req.body;
+app.get('/request', async (req, res) => {
+    const { url } = req.query;
 
     if (!url) {
         return res.status(400).json({ error: 'Missing url in request body' });
@@ -163,6 +163,6 @@ app.get('/health', (req, res) => {
 // Start server
 app.listen(PORT, () => {
     console.log(`YouTube DOM Server listening on port ${PORT}`);
-    console.log(`POST http://localhost:${PORT}/request`);
+    console.log(`GET  http://localhost:${PORT}/request?url=<youtube-url>`);
     console.log(`GET  http://localhost:${PORT}/health`);
 });
