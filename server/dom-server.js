@@ -97,8 +97,11 @@ async function captureAndSaveDOM(v, q) {
         let html = document.documentElement.outerHTML;
 
         // Brute force: Remove consent dialog elements
-        html = html.replace(/<tp-yt-iron-overlay-backdrop[^>]*>.*?<\/tp-yt-iron-overlay-backdrop>/gi, '');
+        // Self-closing backdrop (no closing tag)
+        html = html.replace(/<tp-yt-iron-overlay-backdrop[^>]*>/gi, '');
+        // Full lightbox element with content
         html = html.replace(/<ytd-consent-bump-v2-lightbox[^>]*>.*?<\/ytd-consent-bump-v2-lightbox>/gi, '');
+        // Consent-related dialog
         html = html.replace(/<tp-yt-paper-dialog[^>]*consent[^>]*>.*?<\/tp-yt-paper-dialog>/gi, '');
 
         return html;
