@@ -103,13 +103,14 @@ async function navigateAndRender(url) {
     });
 
     // Wait for JavaScript to finish processing
-    // Wait until YouTube's initial data is loaded
+    // Wait until document is complete and YouTube data is loaded
     await page.waitForFunction(() => {
-        return typeof window.ytInitialData !== 'undefined' || document.readyState === 'complete';
-    }, { timeout: 10000 }).catch(() => {});
+        return document.readyState === 'complete' &&
+               typeof window.ytInitialData !== 'undefined';
+    }, { timeout: 15000 }).catch(() => {});
 
     // Additional wait for any remaining JS processing
-    await delay(3000);
+    await delay(2000);
 
     return await captureDOM();
 }
