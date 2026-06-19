@@ -98,12 +98,18 @@ async function captureDOM() {
  */
 async function navigateAndRender(url) {
     await page.goto(url, {
-        waitUntil: 'domcontentloaded',
+        waitUntil: 'networkidle2',
         timeout: 30000
     });
 
-    // Wait for content to settle
-    await delay(2000);
+    // Wait for JavaScript to finish processing
+    // Wait until YouTube's initial data is loaded
+    await page.waitForFunction(() => {
+        return typeof window.ytInitialData !== 'undefined' || document.readyState === 'complete';
+    }, { timeout: 10000 }).catch(() => {});
+
+    // Additional wait for any remaining JS processing
+    await delay(3000);
 
     return await captureDOM();
 }
