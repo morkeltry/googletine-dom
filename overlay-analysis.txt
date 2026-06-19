@@ -1,0 +1,93 @@
+YouTube DOM Overlay Analysis
+================================
+
+Problem: Grey screen overlays content, but disappears when hovering DevTools
+
+Findings:
+---------
+1. Consent dialog elements ARE in the HTML (not created by JS):
+   - <ytd-consent-bump-v2-lightbox id="lightbox"> with z-index: 2202
+   - <tp-yt-iron-overlay-backdrop opened="" class="opened"> with z-index: 2201
+
+2. Content flashes up then disappears → JavaScript controlling visibility
+
+3. DevTools interaction suggests:
+   - Overlay responds to focus/window events
+   - Possible DevTools detection
+   - Clever pointer-events handling
+
+Key Elements Found:
+------------------
+- Consent dialog: <ytd-consent-bump-v2-lightbox id="lightbox">
+- Backdrop: <tp-yt-iron-overlay-backdrop opened="" class="opened" style="z-index: 2201;">
+- Dialog: <tp-yt-paper-dialog id="dialog" style="z-index: 2202;">
+
+Main Polymer Script:
+-------------------
+https://www.youtube.com/s/_/ytmainappweb/_/js/k=ytmainappweb.kevlar_base.en_US.TfGgm6-Cpog.es5.O/am=AAAAAAQAQABACA/d=1/br=1/rs=AGKMywGC8wTflgNFtY_32kbXTjHrv4tTkg/m=kevlar_base_module,kevlar_main_module,kevlar_base_sync_mod_chunk
+
+This large minified bundle handles YouTube UI logic including consent checking.
+
+Browser Console Commands:
+------------------------
+
+// Check all overlays and their pointer-events
+document.querySelectorAll('[class*="overlay"], [class*="backdrop"], [class*="blanket"]').forEach(el => {
+  console.log(el.tagName, el.className, window.getComputedStyle(el).pointerEvents);
+});
+
+// Monitor focus changes
+document.addEventListener('focus', () => {
+  console.log('Focus changed, active element:', document.activeElement);
+}, true);
+
+// Remove consent elements
+document.querySelector('tp-yt-iron-overlay-backdrop')?.remove();
+document.querySelector('ytd-consent-bump-v2-lightbox')?.remove();
+
+// Brute force - remove ALL potential overlay elements
+document.querySelectorAll('[class*="overlay"], [class*="backdrop"], [class*="blanket"], tp-yt-iron-overlay-backdrop, ytd-consent-bump-v2-lightbox').forEach(el => el.remove());
+
+// Auto-remove consent dialog when it appears
+setInterval(() => {
+  const backdrop = document.querySelector('tp-yt-iron-overlay-backdrop[opened]');
+  const dialog = document.querySelector('ytd-consent-bump-v2-lightbox');
+
+  if (backdrop) backdrop.remove();
+  if (dialog) dialog.remove();
+}, 100);
+
+// Or use MutationObserver to catch dynamic creation
+const observer = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    mutation.addedNodes.forEach((node) => {
+      if (node.nodeType === 1) {
+        if (node.tagName === 'TP-YT-IRON-OVERLAY-BACKDROP' ||
+            node.tagName === 'YTD-CONSENT-BUMP-V2-LIGHTBOX') {
+          node.remove();
+        }
+        // Also check children
+        const found = node.querySelector?.('tp-yt-iron-overlay-backdrop, ytd-consent-bump-v2-lightbox');
+        if (found) found.remove();
+      }
+    });
+  });
+});
+
+observer.observe(document.body, { childList: true, subtree: true });
+
+Solutions:
+---------
+1. Remove consent elements from HTML before serving (server-side)
+2. Run cleanup JS after page load (client-side)
+3. Forward cookies so browser has proper consent state (long-term)
+4. Find and disable specific polymer script that creates/manages consent
+
+Immediate Fix - Add to server:
+--------------------------------
+Strip these elements from DOM before serving:
+- <tp-yt-iron-overlay-backdrop opened="" class="opened" style="z-index: 2201;">
+- <ytd-consent-bump-v2-lightbox id="lightbox" class="style-scope ytd-app">
+
+Analysis Date: 2025-06-19
+Server: googletine-dom on port 60123
