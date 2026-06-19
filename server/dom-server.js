@@ -119,22 +119,9 @@ async function processYouTubeRequest(searchTerm) {
     }
 }
 
-// Request endpoint
+// Request endpoint - returns YouTube search results
 app.get('/request', async (req, res) => {
-    const { url } = req.query;
-
-    if (!url) {
-        return res.status(400).json({ error: 'Missing url in request body' });
-    }
-
-    // Extract search term from YouTube URL
-    const urlObj = new URL(url);
-    const searchParams = new URLSearchParams(urlObj.search);
-    const searchTerm = searchParams.get('search_query');
-
-    if (!searchTerm) {
-        return res.status(400).json({ error: 'Missing search_query parameter in URL' });
-    }
+    const searchTerm = 'cats'; // default search term
 
     console.log(`[${new Date().toISOString()}] Processing request for: "${searchTerm}"`);
 
@@ -163,6 +150,6 @@ app.get('/health', (req, res) => {
 // Start server
 app.listen(PORT, () => {
     console.log(`YouTube DOM Server listening on port ${PORT}`);
-    console.log(`GET  http://localhost:${PORT}/request?url=<youtube-url>`);
+    console.log(`GET  http://localhost:${PORT}/request`);
     console.log(`GET  http://localhost:${PORT}/health`);
 });
