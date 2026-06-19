@@ -52,19 +52,6 @@ async function clickConsentButton(page) {
 }
 
 /**
- * Wait for YouTube search results to load
- */
-async function waitForSearchResults(page) {
-    try {
-        await page.waitForSelector('ytd-video-renderer, ytd-grid-video-renderer, ytd-rich-item-renderer', {
-            timeout: 10000
-        });
-    } catch (e) {
-        await delay(3000);
-    }
-}
-
-/**
  * Capture the rendered DOM and cookies
  */
 async function capturePage(page) {
@@ -76,7 +63,7 @@ async function capturePage(page) {
 /**
  * Process a YouTube request
  */
-async function processYouTubeRequest(searchTerm) {
+async function processYouTubeRequest() {
     const browser = await puppeteer.launch({
         headless: 'new',
         defaultViewport: { width: 1920, height: 1080 },
@@ -97,36 +84,24 @@ async function processYouTubeRequest(searchTerm) {
         await clickConsentButton(page);
         await delay(2000);
 
-        // Navigate to search results
-        const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm)}`;
-        await page.goto(searchUrl, {
-            waitUntil: 'domcontentloaded',
-            timeout: 30000
-        });
-
-        // Wait for content
-        await waitForSearchResults(page);
-
         // Capture DOM and cookies
         const { dom, cookies } = await capturePage(page);
 
         await browser.close();
-        return { success: true, dom, cookies, searchTerm };
+        return { success: true, dom, cookies };
 
     } catch (error) {
         await browser.close();
-        return { success: false, error: error.message, searchTerm };
+        return { success: false, error: error.message };
     }
 }
 
-// Request endpoint - returns YouTube search results
+// Request endpoint - returns YouTube homepage
 app.get('/request', async (req, res) => {
-    const searchTerm = 'cats'; // default search term
-
-    console.log(`[${new Date().toISOString()}] Processing request for: "${searchTerm}"`);
+    console.log(`[${new Date().toISOString()}] Processing request`);
 
     try {
-        const result = await processYouTubeRequest(searchTerm);
+        const result = await processYouTubeRequest();
 
         if (result.success) {
             res.setHeader('Content-Type', 'text/html');
