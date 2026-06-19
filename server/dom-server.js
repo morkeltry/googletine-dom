@@ -46,17 +46,6 @@ async function extractVideoTitles() {
 }
 
 /**
- * Strip all scripts from HTML
- */
-function stripScripts(html) {
-    return html
-        .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gi, '')
-        .replace(/<script\b[^>]*\/>/gi, '')
-        .replace(/on\w+="[^"]*"/gi, '') // Remove inline event handlers
-        .replace(/on\w+='[^']*'/gi, '');
-}
-
-/**
  * Navigate and wait for page to fully load (without clicking consent)
  */
 async function navigateAndWait(url) {
@@ -134,13 +123,12 @@ async function initializeBrowser() {
 }
 
 /**
- * Capture the rendered DOM with scripts stripped
+ * Capture the rendered DOM
  */
-async function captureDOMStripped() {
+async function captureDOM() {
     const dom = await page.evaluate(() => document.documentElement.outerHTML);
-    const stripped = stripScripts(dom);
-    console.log(`DOM captured: ${dom.length} bytes -> ${stripped.length} bytes (stripped)`);
-    return stripped;
+    console.log(`DOM captured: ${dom.length} bytes`);
+    return dom;
 }
 
 /**
@@ -157,7 +145,7 @@ async function navigateAndRender(url) {
     });
     console.log('==================================\n');
 
-    return await captureDOMStripped();
+    return await captureDOM();
 }
 
 // Request endpoint - returns rendered YouTube page with scripts stripped
