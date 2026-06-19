@@ -3,11 +3,21 @@
 
 import express from 'express';
 import puppeteer from 'puppeteer';
+import { writeFileSync, mkdirSync } from 'fs';
+import { join } from 'path';
 
 const PORT = 60123;
 const app = express();
 
 app.use(express.json());
+
+// Create output directory for saved HTML
+const OUTPUT_DIR = join(process.cwd(), 'output');
+try {
+    mkdirSync(OUTPUT_DIR, { recursive: true });
+} catch (e) {
+    // Directory already exists
+}
 
 // Helper function for delays
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -46,7 +56,7 @@ async function extractVideoTitles() {
 }
 
 /**
- * Navigate and wait for page to fully load (without clicking consent)
+ * Navigate and wait for page to fully load
  */
 async function navigateAndWait(url) {
     console.log(`Navigating to: ${url}`);
@@ -77,7 +87,49 @@ async function navigateAndWait(url) {
 }
 
 /**
- * Initialize browser (without handling consent)
+ * Capture the rendered DOM and save to file
+ */
+async function captureAndSaveDOM(v, q) {
+    const dom = await page.evaluate(() => document.documentElement.outerHTML);
+    console.log(`DOM captured: ${dom.length} bytes`);
+
+    // Save to file for later analysis
+    const filename = `${v}-${q}-${Date.now()}.html`;
+    const filepath = join(OUTPUT_DIR, filename);
+    writeFileSync(filepath, dom);
+    console.log(`Saved to: ${filename}`);
+
+    return dom;
+}
+
+/**
+ * Universal request function
+ * @param {string} v - Video identifier (for naming saved files)
+ * @param {string} q - Search term
+ * @param {number} waitMs - Optional wait time before this request (milliseconds)
+ */
+async function processYouTubeRequest(v, q, waitMs = 0) {
+    if (waitMs > 0) {
+        console.log(`=== WAITING ${waitMs}ms ===\n`);
+        await delay(waitMs);
+    }
+
+    console.log(`=== PROCESSING: ${v} (search: "${q}") ===\n`);
+
+    await navigateAndWait(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`);
+
+    const titles = await extractVideoTitles();
+    console.log('\n=== VIDEO TITLES ===');
+    titles.forEach((title, i) => {
+        console.log(`${i + 1}. ${title}`);
+    });
+    console.log('====================\n');
+
+    return await captureAndSaveDOM(v, q);
+}
+
+/**
+ * Initialize browser
  */
 async function initializeBrowser() {
     console.log('=== INITIALIZING BROWSER ===\n');
@@ -91,92 +143,47 @@ async function initializeBrowser() {
     page = await browser.newPage();
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
 
-    // Navigate to YouTube homepage
+    // Navigate to YouTube homepage first to establish session
     await navigateAndWait('https://www.youtube.com');
 
-    // Wait for feed to render
-    console.log('Waiting for feed to render...');
-    await delay(3000);
+    console.log('\n=== INITIALIZATION REQUESTS ===\n');
 
-    // Extract and show video titles
-    console.log('\n=== HOMEPAGE VIDEO TITLES ===');
-    const titles = await extractVideoTitles();
-    titles.forEach((title, i) => {
-        console.log(`${i + 1}. ${title}`);
-    });
-    console.log('============================\n');
+    // Request 1: cats (immediate)
+    await processYouTubeRequest('init-1', 'cats');
 
-    // Test search for cats
-    console.log('=== TESTING SEARCH FOR "CATS" ===\n');
-    await navigateAndWait('https://www.youtube.com/results?search_query=cats');
+    // Request 2: dogs (after ~6 seconds, randomized +/- 10%)
+    const wait2 = Math.round(6000 * (0.9 + Math.random() * 0.2));
+    await processYouTubeRequest('init-2', 'dogs', wait2);
 
-    const searchTitles = await extractVideoTitles();
-    console.log('\n=== SEARCH RESULTS VIDEO TITLES ===');
-    searchTitles.forEach((title, i) => {
-        console.log(`${i + 1}. ${title}`);
-    });
-    console.log('===================================\n');
-
-    // Third init request after ~6 seconds (randomized +/- 10%)
-    const wait3 = Math.round(6000 * (0.9 + Math.random() * 0.2));
-    console.log(`=== WAITING ${wait3}ms BEFORE THIRD INIT REQUEST ===\n`);
-    await delay(wait3);
-
-    console.log('=== TESTING SEARCH FOR "DOGS" ===\n');
-    await navigateAndWait('https://www.youtube.com/results?search_query=dogs');
-
-    const dogsTitles = await extractVideoTitles();
-    console.log('\n=== SEARCH RESULTS VIDEO TITLES ===');
-    dogsTitles.forEach((title, i) => {
-        console.log(`${i + 1}. ${title}`);
-    });
-    console.log('===================================\n');
-
-    // Fourth init request after ~31 seconds (randomized +/- 10%)
-    const wait4 = Math.round(31000 * (0.9 + Math.random() * 0.2));
-    console.log(`=== WAITING ${wait4}ms BEFORE FOURTH INIT REQUEST ===\n`);
-    await delay(wait4);
-
-    console.log('=== TESTING SEARCH FOR "PIGS" ===\n');
-    await navigateAndWait('https://www.youtube.com/results?search_query=pigs');
-
-    const pigsTitles = await extractVideoTitles();
-    console.log('\n=== SEARCH RESULTS VIDEO TITLES ===');
-    pigsTitles.forEach((title, i) => {
-        console.log(`${i + 1}. ${title}`);
-    });
-    console.log('===================================\n');
+    // Request 3: pigs (after ~31 seconds, randomized +/- 10%)
+    const wait3 = Math.round(31000 * (0.9 + Math.random() * 0.2));
+    await processYouTubeRequest('init-3', 'pigs', wait3);
 
     console.log('=== INITIALIZATION COMPLETE ===\n');
 }
 
 /**
- * Capture the rendered DOM
- */
-async function captureDOM() {
-    const dom = await page.evaluate(() => document.documentElement.outerHTML);
-    console.log(`DOM captured: ${dom.length} bytes`);
-    return dom;
-}
-
-/**
- * Navigate to a URL, wait for content, extract titles, and return stripped DOM
+ * Navigate to a URL, wait for content, extract titles, and return DOM
  */
 async function navigateAndRender(url) {
+    // Extract search term from URL for naming
+    const urlObj = new URL(url);
+    const searchParams = new URLSearchParams(urlObj.search);
+    const searchTerm = searchParams.get('search_query') || 'homepage';
+
     await navigateAndWait(url);
 
-    // Extract and log video titles before serving
-    console.log('\n=== VIDEO TITLES FOR REQUEST ===');
     const titles = await extractVideoTitles();
+    console.log('\n=== VIDEO TITLES FOR REQUEST ===');
     titles.forEach((title, i) => {
         console.log(`${i + 1}. ${title}`);
     });
     console.log('==================================\n');
 
-    return await captureDOM();
+    return await captureAndSaveDOM('req', searchTerm);
 }
 
-// Request endpoint - returns rendered YouTube page with scripts stripped
+// Request endpoint - returns rendered YouTube page
 app.get('/request', async (req, res) => {
     const url = req.query.url || 'https://www.youtube.com';
     console.log(`[${new Date().toISOString()}] Processing request for: ${url}`);
@@ -212,6 +219,7 @@ async function startServer() {
         console.log(`YouTube DOM Server listening on port ${PORT}`);
         console.log(`GET  http://localhost:${PORT}/request?url=<youtube-url>`);
         console.log(`GET  http://localhost:${PORT}/health`);
+        console.log(`Output directory: ${OUTPUT_DIR}`);
     });
 }
 
