@@ -27,8 +27,11 @@ async function getBrowser() {
     console.log('[live] launching browser...');
     browser = await puppeteer.launch({
       headless: 'new',
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       defaultViewport: { width: 1366, height: 900 },
-      args: ['--no-sandbox', '--disable-setuid-sandbox', '--lang=en-US', '--mute-audio'],
+      // --disable-dev-shm-usage keeps Chromium alive under a container memory cap
+      // (writes shared memory to /tmp instead of a tiny /dev/shm).
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--lang=en-US', '--mute-audio'],
     });
   }
   return browser;

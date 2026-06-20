@@ -1,0 +1,38 @@
+# Googletine live-algo — PRODUCTION (Dokploy / "bring your own site")
+#
+# Deploy pattern (see kami/docs/15-byo-site.md, Option A — rsync):
+#   1. Source lives on the server at  /etc/dokploy/googletine
+#   2. This YAML is stored RAW in the Dokploy compose (sourceType: raw)
+#   3. Dokploy adds the Traefik route + Let's Encrypt cert via domain.create:
+#        host: googletine.leistenmacher.de   serviceName: app   port: 7100
+#
+# Dokploy attaches the service to its own network and routes through Traefik,
+# so NO ports are published here.
+
+services:
+  app:
+    build:
+      context: /etc/dokploy/googletine
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - LIVE_PORT=7100
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    # Chromium child memory goes to /tmp (--disable-dev-shm-usage is set in the
+    # launcher), so a small shm is enough.
+    shm_size: "256m"
+    # The host is memory-constrained (~1.8 GB free, swap full). Cap the service
+    # so a runaway Chromium can't OOM the box; it restarts instead.
+    mem_limit: 1536m
+    mem_reservation: 768m
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:7100/api/lenses',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s

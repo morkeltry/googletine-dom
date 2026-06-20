@@ -1,0 +1,36 @@
+# Googletine live-algo — DEVELOPMENT
+#
+#   docker compose up --build      # → http://localhost:7100
+#
+# Builds from the local context, publishes the port, and bind-mounts the app so
+# `node --watch` restarts on edits. Chromium runs headless inside the container.
+
+services:
+  googletine:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: googletine-live-dev
+    command: ["node", "--watch", "live-algo/server.mjs"]
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - LIVE_PORT=7100
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    ports:
+      - "7100:7100"
+    # edit live-algo/ on the host and the server restarts automatically
+    volumes:
+      - ./live-algo:/app/live-algo:ro
+    # Chromium needs more shared memory than Docker's default 64 MB
+    shm_size: "512m"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:7100/api/lenses',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
