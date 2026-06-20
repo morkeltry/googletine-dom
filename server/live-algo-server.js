@@ -259,6 +259,11 @@ app.use(express.static(join(__dirname, 'public')));
 // AlgoMate agent: state + console endpoints (step 1)
 mountAgent(app);
 
+// Root route - explicitly serve the main page
+app.get('/', (req, res) => {
+  res.sendFile(join(__dirname, 'public', 'index.html'));
+});
+
 app.get('/api/lenses', (req, res) => res.json(Object.values(LENSES)));
 
 app.get('/api/feed', async (req, res) => {
