@@ -1,7 +1,8 @@
 // Server startup for googletine
+// Now using live-algo server as the main server
 
 import { exec } from 'child_process';
-import server from './server.js';
+import server from '../../live-algo-server.js';
 
 const port = server.get('port');
 const delay = 500;
