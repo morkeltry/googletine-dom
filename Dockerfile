@@ -28,6 +28,8 @@ RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # The YourAlgoMate server + its static UI + activity logger.
 COPY server ./server
+# shared/ holds the MPP payment modules imported by the server.
+COPY shared ./shared
 
 # Activity logs are written at runtime under server/logs/users — make the
 # directory writable by the non-root user.
