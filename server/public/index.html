@@ -3,75 +3,74 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>YourAlgoMate — Choose your algorithm</title>
+<title>AlgoMate — Choose your algorithm</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
 <style>
   :root{
-    --bg:#ffffff;
-    --ink:#0a0a0a;
-    --ink-2:#3f3f3f;
-    --ink-3:#707070;
-    --line:#e6e6e6;
-    --line-2:#d2d2d2;
-    --fill:#0a0a0a;
+    --bg:#ffffff; --ink:#0a0a0a; --ink-2:#3f3f3f; --ink-3:#717171;
+    --line:#ececec; --line-2:#d6d6d6; --fill:#0a0a0a;
+    --ease:cubic-bezier(.16,1,.3,1);
     --z-sticky:100; --z-mask:200; --z-modal:400;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  html{ -webkit-text-size-adjust:100%; }
-  body{
-    background:var(--bg);color:var(--ink);
-    font-family:'Bricolage Grotesque',system-ui,sans-serif;
-    font-size:16px;line-height:1.55;font-weight:400;
-    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
-  }
+  html{-webkit-text-size-adjust:100%;}
+  body{background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:16px;line-height:1.55;font-weight:400;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
   ::selection{background:var(--ink);color:var(--bg);}
   .wrap{max-width:1240px;margin:0 auto;padding:0 28px;}
-  .em{filter:grayscale(1);}        /* keep the palette monochrome */
+  .ic{width:1em;height:1em;display:inline-block;vertical-align:-.13em;flex:none;}
 
   /* top bar */
-  .top{position:sticky;top:0;z-index:var(--z-sticky);background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);}
-  .top .wrap{display:flex;align-items:center;gap:18px;height:64px;}
+  .top{position:sticky;top:0;z-index:var(--z-sticky);background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(9px);border-bottom:1px solid var(--line);}
+  .top .wrap{display:flex;align-items:center;gap:16px;height:64px;}
   .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit;}
-  .glyph{width:26px;height:26px;border-radius:6px;background:var(--ink);display:grid;place-items:center;color:var(--bg);font-weight:700;font-size:15px;}
+  .glyph{width:26px;height:26px;border-radius:7px;background:var(--ink);display:grid;place-items:center;color:var(--bg);}
+  .glyph .ic{width:15px;height:15px;}
   .brand b{font-weight:700;font-size:17px;letter-spacing:-.03em;}
-  .live{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;font-weight:500;color:var(--ink-2);letter-spacing:.01em;}
-  .live .dot{width:7px;height:7px;border-radius:50%;background:var(--ink);position:relative;}
-  .live .dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--ink);opacity:.4;animation:ping 2s ease-out infinite;}
-  @keyframes ping{0%{transform:scale(.7);opacity:.5}100%{transform:scale(1.8);opacity:0}}
-  .agentlink{text-decoration:none;color:var(--ink);font-weight:600;font-size:14px;border:1px solid var(--line-2);border-radius:999px;padding:7px 15px;transition:background .18s,color .18s;}
+  .agentlink{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:var(--ink);font-weight:600;font-size:14px;border:1px solid var(--line-2);border-radius:999px;padding:7px 9px 7px 15px;transition:background .2s var(--ease),color .2s var(--ease);}
+  .agentlink .ic{width:15px;height:15px;transition:transform .25s var(--ease);}
   .agentlink:hover{background:var(--ink);color:var(--bg);}
+  .agentlink:hover .ic{transform:translate(2px,-2px);}
+  .live{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;font-weight:500;color:var(--ink-2);}
+  .live .dot{width:7px;height:7px;border-radius:50%;background:var(--ink);position:relative;}
+  .live .dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--ink);opacity:.4;animation:ping 2.4s ease-out infinite;}
+  @keyframes ping{0%{transform:scale(.6);opacity:.5}100%{transform:scale(1.9);opacity:0}}
 
   /* hero — the one message */
-  header{padding:74px 0 30px;}
-  header h1{font-size:clamp(46px,9.5vw,92px);font-weight:800;letter-spacing:-.038em;line-height:.96;text-wrap:balance;max-width:13ch;}
-  header .sub{margin-top:22px;font-size:clamp(17px,2vw,21px);color:var(--ink-2);max-width:46ch;line-height:1.45;font-weight:400;text-wrap:pretty;}
+  header{padding:78px 0 30px;}
+  header h1{font-size:clamp(46px,9.5vw,92px);font-weight:800;letter-spacing:-.038em;line-height:.95;text-wrap:balance;max-width:13ch;}
+  header .sub{margin-top:22px;font-size:clamp(17px,2vw,21px);color:var(--ink-2);max-width:46ch;line-height:1.45;text-wrap:pretty;}
   header .sub b{color:var(--ink);font-weight:600;}
+  .enter{opacity:0;transform:translateY(14px);animation:enter .8s var(--ease) forwards;}
+  .enter.d1{animation-delay:.06s;} .enter.d2{animation-delay:.15s;} .enter.d3{animation-delay:.24s;}
+  @keyframes enter{to{opacity:1;transform:none;}}
 
   /* controls */
   .controls{margin-top:40px;display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;}
   .lenstabs{display:flex;gap:10px;}
-  .ltab{cursor:pointer;display:flex;align-items:center;gap:11px;background:var(--bg);border:1px solid var(--line-2);border-radius:13px;padding:11px 16px;transition:border-color .18s,background .18s,color .18s;}
-  .ltab:hover{border-color:var(--ink);}
+  .ltab{cursor:pointer;display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--line-2);border-radius:13px;padding:11px 17px 11px 14px;transition:border-color .2s var(--ease),background .2s var(--ease),color .2s var(--ease),transform .15s var(--ease);}
+  .ltab:hover{border-color:var(--ink);transform:translateY(-1px);}
   .ltab.active{background:var(--ink);border-color:var(--ink);color:var(--bg);}
-  .ltab.active .em{filter:grayscale(1) invert(1) brightness(1.6);}
-  .ltab .em{font-size:19px;line-height:1;}
+  .ltab .ti{display:grid;place-items:center;}
+  .ltab .ti .ic{width:20px;height:20px;}
   .ltab b{font-weight:600;font-size:15px;letter-spacing:-.01em;}
-  .ltab span{display:block;font-size:11.5px;color:var(--ink-3);font-weight:400;}
-  .ltab.active span{color:rgba(255,255,255,.66);}
+  .ltab .when{display:block;font-size:11.5px;color:var(--ink-3);font-weight:400;}
+  .ltab.active .when{color:rgba(255,255,255,.66);}
 
-  .searchwrap{flex:1;min-width:240px;display:flex;background:var(--bg);border:1px solid var(--line-2);border-radius:13px;overflow:hidden;transition:border-color .18s;}
+  .searchwrap{flex:1;min-width:240px;display:flex;align-items:center;background:var(--bg);border:1px solid var(--line-2);border-radius:13px;overflow:hidden;transition:border-color .2s var(--ease);}
   .searchwrap:focus-within{border-color:var(--ink);}
-  .searchwrap input{flex:1;border:0;background:transparent;padding:13px 16px;font-family:inherit;font-size:15px;color:var(--ink);outline:none;}
+  .searchwrap .si{margin-left:15px;color:var(--ink-3);display:grid;place-items:center;}
+  .searchwrap .si .ic{width:17px;height:17px;}
+  .searchwrap input{flex:1;border:0;background:transparent;padding:13px 14px;font-family:inherit;font-size:15px;color:var(--ink);outline:none;}
   .searchwrap input::placeholder{color:var(--ink-3);}
-  .searchwrap button{border:0;background:var(--ink);color:var(--bg);padding:0 20px;font-family:inherit;font-weight:600;cursor:pointer;font-size:14px;transition:opacity .18s;}
+  .searchwrap button{border:0;background:var(--ink);color:var(--bg);padding:0 20px;align-self:stretch;font-family:inherit;font-weight:600;cursor:pointer;font-size:14px;transition:opacity .2s var(--ease);}
   .searchwrap button:hover{opacity:.82;}
 
   /* status line */
   .statusbar{margin-top:26px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;border-top:1px solid var(--line);padding:16px 0 0;}
   .statusbar .ctx{display:flex;align-items:baseline;gap:12px;}
-  .statusbar .ctx .k{font-size:12px;font-weight:500;color:var(--ink-3);text-transform:lowercase;}
+  .statusbar .ctx .k{font-size:12px;font-weight:500;color:var(--ink-3);}
   .statusbar .ctx .v{font-size:18px;font-weight:600;letter-spacing:-.01em;}
   .statusbar .ctx .v em{font-style:normal;}
   .busy{display:none;align-items:center;gap:9px;font-size:13px;color:var(--ink-2);}
@@ -81,22 +80,26 @@
 
   .history{margin-top:13px;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
   .history .h{font-size:12px;font-weight:500;color:var(--ink-3);}
-  .history .crumb{filter:grayscale(1);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12.5px;color:var(--ink-2);max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .history .arrow{color:var(--line-2);}
+  .history .crumb{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12.5px;color:var(--ink-2);max-width:260px;overflow:hidden;}
+  .history .crumb .ic{width:12px;height:12px;color:var(--ink-3);}
+  .history .crumb .lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .history .arrow{color:var(--line-2);display:grid;place-items:center;}
+  .history .arrow .ic{width:14px;height:14px;}
 
   /* feed */
   .feed{margin:30px 0;display:grid;grid-template-columns:repeat(auto-fill,minmax(248px,1fr));gap:30px 22px;min-height:220px;position:relative;}
   .v{display:block;text-decoration:none;color:inherit;cursor:pointer;opacity:1;}
   @media (prefers-reduced-motion:no-preference){
-    .v{opacity:0;transform:translateY(12px);animation:pop .5s cubic-bezier(.16,1,.3,1) forwards;}
+    .v{opacity:0;transform:translateY(12px);animation:pop .55s var(--ease) forwards;}
   }
   @keyframes pop{to{opacity:1;transform:none;}}
-  .thumb{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line);transition:transform .22s cubic-bezier(.16,1,.3,1),box-shadow .22s;}
+  .thumb{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;border:1px solid var(--line);transition:transform .25s var(--ease),box-shadow .25s var(--ease);}
   .v:hover .thumb{transform:translateY(-4px);box-shadow:0 18px 34px -20px rgba(0,0,0,.45);}
-  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
-  .thumb .play{position:absolute;inset:0;margin:auto;width:50px;height:50px;border-radius:50%;background:rgba(10,10,10,.62);display:grid;place-items:center;opacity:0;transition:opacity .2s;backdrop-filter:blur(2px);}
-  .v:hover .thumb .play{opacity:1;}
-  .thumb .play::after{content:"";border-left:15px solid #fff;border-top:10px solid transparent;border-bottom:10px solid transparent;margin-left:3px;}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s var(--ease);}
+  .v:hover .thumb img{transform:scale(1.04);}
+  .thumb .play{position:absolute;inset:0;margin:auto;width:52px;height:52px;border-radius:50%;background:rgba(10,10,10,.6);color:#fff;display:grid;place-items:center;opacity:0;transform:scale(.9);transition:opacity .22s var(--ease),transform .22s var(--ease);backdrop-filter:blur(2px);}
+  .thumb .play .ic{width:22px;height:22px;margin-left:2px;}
+  .v:hover .thumb .play{opacity:1;transform:scale(1);}
   .meta{display:grid;grid-template-columns:34px 1fr;gap:12px;margin-top:13px;}
   .av{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:14px;background:var(--ink);}
   .vt{font-size:14px;font-weight:600;line-height:1.32;letter-spacing:-.005em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;transition:opacity .15s;}
@@ -104,7 +107,7 @@
   .vch{font-size:12.5px;color:var(--ink-2);margin-top:5px;}
   .vv{font-size:12px;color:var(--ink-3);}
 
-  .feedmask{position:absolute;inset:-12px;background:color-mix(in srgb,var(--bg) 62%,transparent);backdrop-filter:blur(2px);display:none;align-items:flex-start;justify-content:center;padding-top:70px;z-index:5;border-radius:14px;}
+  .feedmask{position:absolute;inset:-12px;background:color-mix(in srgb,var(--bg) 60%,transparent);backdrop-filter:blur(2px);display:none;align-items:flex-start;justify-content:center;padding-top:70px;z-index:5;border-radius:14px;}
   .feedmask.on{display:flex;}
   .feedmask .pill{background:var(--ink);color:var(--bg);font-size:13px;font-weight:500;padding:11px 19px;border-radius:999px;display:flex;align-items:center;gap:10px;box-shadow:0 16px 34px -16px rgba(0,0,0,.5);}
   .feedmask .pill .spin{border-color:rgba(255,255,255,.28);border-top-color:#fff;}
@@ -113,49 +116,57 @@
 
   /* player modal */
   .modal{position:fixed;inset:0;z-index:var(--z-modal);display:none;align-items:center;justify-content:center;padding:24px;background:rgba(10,10,10,.78);backdrop-filter:blur(7px);}
-  .modal.open{display:flex;}
-  .mbox{width:min(960px,100%);background:#0a0a0a;border:1px solid #262626;border-radius:16px;overflow:hidden;box-shadow:0 50px 100px -30px rgba(0,0,0,.7);}
+  .modal.open{display:flex;animation:fade .2s var(--ease);}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .mbox{width:min(960px,100%);background:#0a0a0a;border:1px solid #262626;border-radius:16px;overflow:hidden;box-shadow:0 50px 100px -30px rgba(0,0,0,.7);animation:rise .28s var(--ease);}
+  @keyframes rise{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:none}}
   .frame{position:relative;aspect-ratio:16/9;background:#000;}
   .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
   .mbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 17px;}
   .mbar .mt{font-size:14px;font-weight:600;color:#f2f2f2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .mbar .react{font-size:12px;color:#9a9a9a;display:flex;align-items:center;gap:8px;}
   .mbar .acts{display:flex;align-items:center;gap:9px;flex:none;}
-  .mbar a{font-size:12.5px;font-weight:500;color:#cfcfcf;text-decoration:none;border:1px solid #2c2c2c;padding:7px 13px;border-radius:9px;transition:background .18s;}
+  .mbar a{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;color:#cfcfcf;text-decoration:none;border:1px solid #2c2c2c;padding:7px 12px;border-radius:9px;transition:background .2s var(--ease);}
+  .mbar a .ic{width:13px;height:13px;}
   .mbar a:hover{background:#1a1a1a;}
-  .mbar .x{cursor:pointer;color:#cfcfcf;background:#1a1a1a;border:1px solid #2c2c2c;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;font-size:15px;}
+  .mbar .x{cursor:pointer;color:#cfcfcf;background:#1a1a1a;border:1px solid #2c2c2c;width:32px;height:32px;border-radius:9px;display:grid;place-items:center;transition:background .2s var(--ease);}
+  .mbar .x .ic{width:16px;height:16px;}
   .mbar .x:hover{background:#262626;}
 
-  footer{padding:36px 0 64px;border-top:1px solid var(--line);color:var(--ink-3);font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;}
-  footer a{color:var(--ink-2);text-decoration:none;border-bottom:1px solid var(--line-2);}
+  footer{padding:36px 0 64px;border-top:1px solid var(--line);}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--ink-3);font-size:13px;}
+  footer a{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);text-decoration:none;}
+  footer a .ic{width:14px;height:14px;transition:transform .25s var(--ease);}
   footer a:hover{color:var(--ink);}
+  footer a:hover .ic{transform:translateX(3px);}
 
   @media (prefers-reduced-motion:reduce){
     *{animation:none!important;transition:none!important;}
-    .v{opacity:1;transform:none;}
+    .enter,.v{opacity:1!important;transform:none!important;}
   }
 </style>
 </head>
 <body>
 <div class="top"><div class="wrap">
-  <a class="brand" href="/"><span class="glyph">Y</span><b>YourAlgoMate</b></a>
-  <a class="agentlink" href="/agent">Your agent ↗</a>
+  <a class="brand" href="/"><span class="glyph" id="gBrand"></span><b>AlgoMate</b></a>
+  <a class="agentlink" href="/agent">Your agent <span id="iAgent"></span></a>
   <div class="live"><span class="dot"></span> live · driving real YouTube</div>
 </div></div>
 
 <header><div class="wrap">
-  <h1>Choose your algorithm.</h1>
-  <p class="sub">Same videos — ranked by a feed <b>you</b> pick, not the platform. Choose a lens; your YouTube changes.</p>
+  <h1 class="enter">Choose your algorithm.</h1>
+  <p class="sub enter d1">Same videos — ranked by a feed <b>you</b> pick, not the platform. Choose a lens; your YouTube changes.</p>
 
-  <div class="controls">
+  <div class="controls enter d2">
     <div class="lenstabs" id="lenstabs"></div>
     <div class="searchwrap">
+      <span class="si" id="iSearch"></span>
       <input id="q" placeholder="Search this feed… (empty + Enter = home)" />
       <button id="qbtn">Search</button>
     </div>
   </div>
 
-  <div class="statusbar">
+  <div class="statusbar enter d3">
     <div class="ctx"><span class="k">now showing</span><span class="v" id="ctx">warming up…</span></div>
     <div class="busy" id="busy"><span class="spin"></span> <span id="busytxt">driving the live session…</span></div>
   </div>
@@ -174,22 +185,45 @@
     <div class="mt" id="mTitle"></div>
     <div class="acts">
       <span class="react" id="mReact"><span class="spin"></span> backend watching…</span>
-      <a id="mYt" href="#" target="_blank" rel="noopener">YouTube ↗</a>
-      <span class="x" id="mClose">✕</span>
+      <a id="mYt" href="#" target="_blank" rel="noopener">YouTube <span id="iYt"></span></a>
+      <span class="x" id="mClose"></span>
     </div>
   </div>
 </div></div>
 
-<footer><div class="wrap" style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;width:100%">
+<footer><div class="wrap">
   <span>A real YouTube session per lens — watched on your behalf, paid by an agent over MPP.</span>
-  <a href="/agent">Watch your agent →</a>
+  <a href="/agent">Watch your agent <span id="iWatch"></span></a>
 </div></footer>
 
 <script>
-const LENS_STYLE = { dev:{av:'#0a0a0a'}, cat:{av:'#0a0a0a'} };
+/* ---- inline SVG icon set (monochrome line icons, inherit currentColor) ---- */
+const IC = {
+  bolt:   '<svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4.5 13.2A1 1 0 0 0 5.3 14.8H11l-1 7.2 8.5-11.2a1 1 0 0 0-.8-1.6H12l1-6.4Z"/></svg>',
+  code:   '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
+  cat:    '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17z"/></svg>',
+  lens:   '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg>',
+  arrowUR:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>',
+  arrowR: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13"/><path d="m13 6 6 6-6 6"/></svg>',
+  search: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>',
+  play:   '<svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.72-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14Z"/></svg>',
+  spark:  '<svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5l1.7 5.1a3 3 0 0 0 1.9 1.9L20.5 11l-4.9 1.5a3 3 0 0 0-1.9 1.9L12 19.5l-1.7-5.1a3 3 0 0 0-1.9-1.9L3.5 11l4.9-1.5a3 3 0 0 0 1.9-1.9L12 2.5Z"/></svg>',
+  close:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6 18 18M18 6 6 18"/></svg>',
+};
+const LENS_ICON = { dev: IC.code, cat: IC.cat };
+const HIST_ICON = { watch: IC.play, search: IC.search, seed: IC.spark };
+
 let LENSES = [], lens = 'dev', state = { feed:[], context:'', watched:[] };
 const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 const $ = id => document.getElementById(id);
+
+// place static icons
+$('gBrand').innerHTML = IC.bolt;
+$('iAgent').innerHTML = IC.arrowUR;
+$('iSearch').innerHTML = IC.search;
+$('iYt').innerHTML = IC.arrowUR;
+$('iWatch').innerHTML = IC.arrowR;
+$('mClose').innerHTML = IC.close;
 
 function setBusy(on, txt){ $('busy').classList.toggle('on', on); if(txt) $('busytxt').textContent = txt; }
 function setMask(on, txt){ $('feedmask').classList.toggle('on', on); if(txt) $('maskTxt').textContent = txt; }
@@ -204,8 +238,8 @@ async function api(path, body){
 function renderTabs(){
   $('lenstabs').innerHTML = LENSES.map(l => `
     <div class="ltab ${l.id===lens?'active':''}" data-id="${l.id}">
-      <span class="em">${l.emoji}</span>
-      <span><b>${l.name}</b><span>${l.when}</span></span>
+      <span class="ti">${LENS_ICON[l.id]||IC.lens}</span>
+      <span><b>${esc(l.name)}</b><span class="when">${esc(l.when||'')}</span></span>
     </div>`).join('');
   document.querySelectorAll('.ltab').forEach(t => t.addEventListener('click', () => switchLens(t.dataset.id)));
 }
@@ -215,25 +249,23 @@ function renderStatus(){
   const h = $('history');
   const isHome = (state.context||'').startsWith('home');
   if(isHome && state.sources && state.sources.length){
-    const icon = t => t==='watch' ? '▶' : t==='search' ? '🔍' : '✦';
     h.style.display = 'flex';
     h.innerHTML = '<span class="h">blended from</span>' +
-      state.sources.slice(0,8).map(s => `<span class="crumb">${icon(s.type)} ${esc(s.label)}</span>`).join('');
+      state.sources.slice(0,8).map(s => `<span class="crumb">${HIST_ICON[s.type]||IC.spark}<span class="lbl">${esc(s.label)}</span></span>`).join('');
   } else if(state.watched && state.watched.length){
     h.style.display = 'flex';
     h.innerHTML = '<span class="h">watched this session</span>' +
-      state.watched.slice(-6).map(w => `<span class="crumb">▶ ${esc(w.title)}</span>`).join('<span class="arrow">→</span>');
+      state.watched.slice(-6).map(w => `<span class="crumb">${IC.play}<span class="lbl">${esc(w.title)}</span></span>`).join('<span class="arrow">'+IC.arrowR+'</span>');
   } else { h.style.display = 'none'; }
 }
 
 function renderFeed(){
-  const av = (LENS_STYLE[lens]||{}).av || '#0a0a0a';
   const mask = $('feedmask');
   const cards = (state.feed||[]).map((v,i) => `
     <a class="v" data-id="${v.id}" data-title="${esc(v.title)}" href="https://www.youtube.com/watch?v=${v.id}" style="animation-delay:${i*38}ms">
-      <div class="thumb"><img loading="lazy" src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt=""><span class="play"></span></div>
+      <div class="thumb"><img loading="lazy" src="https://i.ytimg.com/vi/${v.id}/mqdefault.jpg" alt=""><span class="play">${IC.play}</span></div>
       <div class="meta">
-        <span class="av" style="background:${av}">${esc((v.channel||'?')[0])}</span>
+        <span class="av">${esc((v.channel||'?')[0])}</span>
         <span><div class="vt">${esc(v.title)}</div><div class="vch">${esc(v.channel)}</div><div class="vv">${esc(v.meta)}</div></span>
       </div>
     </a>`).join('');
@@ -301,7 +333,7 @@ modal.addEventListener('click', e => { if(e.target===modal) closePlayer(); });
 document.addEventListener('keydown', e => { if(e.key==='Escape') closePlayer(); });
 
 (async function init(){
-  try { LENSES = await api('/api/lenses'); } catch(e){ LENSES = [{id:'dev',name:'Developer',emoji:'👨‍💻',when:''},{id:'cat',name:'Cat Lover',emoji:'🐱',when:''}]; }
+  try { LENSES = await api('/api/lenses'); } catch(e){ LENSES = [{id:'dev',name:'Developer',when:'the 9-to-5 you'},{id:'cat',name:'Cat Lover',when:'the after-dark you'}]; }
   renderTabs(); await loadFeed();
 })();
 </script>
