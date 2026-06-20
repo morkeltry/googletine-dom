@@ -1,191 +1,314 @@
-<div align="center">
+# Googletine-DOM
 
-# 🎛️ YourAlgoMate
+**Payment-based proxy node for circumventing loginwalls and algorithm mirroring.**
 
-### Your content, *someone else's* algorithm — chosen by you, paid by the click.
+A two-tier architecture where a **client** handles payments and forwards requests to a **server** that fetches, renders, and serves content with proper payment flow.
 
-**A marketplace of algorithms with a personal agent that runs your feed and pays the pennies.**
-
-[**▶ Live app**](https://googletine.boxgeist.com) · [**🤖 Agent console**](https://googletine.boxgeist.com/agent) · [**📖 API docs**](API.md)
-
-`Status: live` · `Model: GLM-5.2` · `Payments: MPP` · `Runtime: Node 22 + Puppeteer`
-
-</div>
-
----
-
-## What is this?
-
-Today a platform owns **both** its content **and** the algorithm that ranks it — you can't have YouTube's videos without YouTube's feed. **YourAlgoMate unbundles them.** The content stays the platform's; the *ranking* becomes a thing **you choose**.
-
-You pick a **lens** (e.g. *Developer* by day, *Cat Lover* by night). Behind the scenes a real YouTube session is driven on your behalf and mirrored in a clean UI that learns from every click. And a **personal agent** (GLM-5.2) watches your context, switches the lens to fit the moment, and **auto-pays the per-view micro-fees over MPP** — so it just feels free.
-
-> **Try it:** open the [live app](https://googletine.boxgeist.com), pick a lens, click a video — the feed evolves. Then open the [agent console](https://googletine.boxgeist.com/agent) and hit **"Let the agent decide."**
-
----
-
-## 🏆 Hackathon
-
-Built for the **Futura Camp · MPP Hackathon** (sponsored by **[Tempo](https://tempo.xyz)**, creators of the [Machine Payments Protocol](https://mpp.dev)).
-
-YourAlgoMate is a **consumer-facing reason for machine payments to exist**: an autonomous agent that pays sub-cent fees you'd never sign up and enter a card for by hand. That's the MPP story, made human.
-
-| | |
-|---|---|
-| **Live demo** | https://googletine.boxgeist.com |
-| **Agent console** | https://googletine.boxgeist.com/agent |
-| **Track** | App (consumer + agentic) |
-| **Payments** | MPP (Machine Payments Protocol) |
-| **Agent model** | GLM-5.2 (Z.ai) |
-
----
-
-## ✨ Features
-
-- **Choose your algorithm** — switch between curated *lenses*; same content, a different feed.
-- **Live, stateful sessions** — a persistent headless Chromium session per lens holds its own watch-history. Click a video and the feed genuinely **evolves**.
-- **Blended Home** — "home" is built from everything the session engaged with, weighted by interest.
-- **In-page playback** — videos play inside the app via the YouTube embed; never leave the site.
-- **A personal agent (AlgoMate)** — GLM-5.2 senses time + activity, picks the right lens, pays, and **narrates every action** on a live console.
-- **Real machine payments** — micro-fees settled over **MPP**, inside a budget you set.
-- **Activity logging** — per-user searches & watches recorded for the agent's signal.
-
----
-
-## 🧠 How it works
+## Architecture
 
 ```
-                         ┌─────────────── YourAlgoMate ───────────────┐
-   You ──▶ Web UI ◀────▶ │  REST + SSE API                            │
- (browser)              │     │                                       │
-                        │     ├─▶ Live session (Developer)  ─▶ youtube.com
-                        │     ├─▶ Live session (Cat Lover)   ─▶ youtube.com
-                        │     │      (persistent headless Chromium, 1 per lens)
-                        │     │                                       │
-                        │     ├─▶ Activity logger ── context ──▶ AlgoMate agent
-                        │     │                                   (GLM-5.2)
-                        │     └─▶ MPP payments ◀── approve_payment ──┘
-                        └────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                         Browser                                 │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ HTTP requests
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Client (Port 6060)                                             │
+│  - Handles payment authorization                                │
+│  - Shows payment modal to user                                  │
+│  - Manages MPP payment channels                                 │
+│  - Forwards requests to server                                  │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ Forwarded with payment
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  Server (Port 7070)                                             │
+│  - Validates payments                                           │
+│  - Fetches pages using Puppeteer                                │
+│  - Renders and processes HTML                                   │
+│  - Returns 402 if no payment                                    │
+│  - Returns content if payment valid                            │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-1. **Pick a lens → see a real feed.** A headless browser per lens drives YouTube; we mirror its state.
-2. **Click a video → the feed reacts.** The session watches it; recommendations shift; history accumulates.
-3. **The agent senses your context.** Time of day + recent activity → the right lens for the moment.
-4. **It decides, acts, and explains itself.** GLM-5.2 switches the lens if it helps and narrates on the console.
-5. **It pays for you over MPP.** The per-view fee is auto-settled within your budget — no checkout.
+## Payment Flow
 
----
+1. **Browser requests URL** → `localhost:6060/https://youtube.com`
+2. **Client forwards** → `localhost:7070/request?url=https://youtube.com`
+3. **Server checks payment** → Returns 402 + payment details if no payment
+4. **Client receives 402** → Redirects user to payment modal
+5. **User authorizes** → Selects amount ($1-$10 USDC)
+6. **Client retries** → With payment in headers
+7. **Server validates** → Fetches, renders, returns HTML page
+8. **Client streams** → HTML content to browser
 
-## 🚀 Quick start
+## Quick Start
 
-### Prerequisites
-- **Node.js 22+**
-- **Chromium** — Puppeteer downloads its own by default; in Docker we use the system package.
-- *(Optional)* a **Z.ai GLM Coding Plan** API key to power the live agent (it falls back to a time-of-day rule without one).
-
-### Install & run
 ```bash
-git clone https://github.com/morkeltry/googletine-dom
-cd googletine-dom
+# Install dependencies
 npm install
 
-# start the YourAlgoMate server (default :7070)
+# Start server (port 7070)
 npm run start-server
-#   → app:            http://localhost:7070
-#   → agent console:  http://localhost:7070/agent
+
+# Start client (port 6060)
+npm run start-client
+
+# Access via client (all equivalent)
+curl http://localhost:6060/youtube.com
+curl http://localhost:6060/https://youtube.com
+curl http://localhost:6060/request/https://youtube.com
 ```
 
-### Enable the live agent (optional)
-```bash
-export ZAI_API_KEY="<your Z.ai GLM Coding Plan key>"
-export GLM_MODEL="glm-5.2"
-npm run start-server
-```
-
----
-
-## ⚙️ Configuration
-
-All configuration is via environment variables:
+## Environment Variables
 
 | Variable | Default | Description |
-|---|---|---|
-| `LIVE_PORT` / `GOOGLETINE_SERVER_PORT` | `7070` | HTTP port for the server. |
-| `ZAI_API_KEY` | — | Z.ai **GLM Coding Plan** key for the agent. Without it, the agent uses a simple time-of-day rule. |
-| `GLM_MODEL` | `glm-5.2` | The GLM model id. |
-| `GLM_BASE_URL` | `https://api.z.ai/api/coding/paas/v4` | OpenAI-compatible base URL. **Use the `coding` endpoint** for Coding-Plan keys. |
+|----------|---------|-------------|
+| `GOOGLETINE_SERVER_PORT` | `7070` | Server port |
+| `GOOGLETINE_CLIENT_PORT` | `6060` | Client port |
+| `LIVE_PORT` | `7070` | Live-algo server port |
+| `ZAI_API_KEY` | — | Z.ai API key for agent (optional) |
+| `GLM_MODEL` | `glm-5.2` | GLM model for agent |
 
-> 🔑 The API key is **never committed** — set it in your shell locally, or as an encrypted env var on your host (e.g. Coolify).
+## Client Endpoints (Port 6060)
 
----
-
-## 🔌 API
-
-Full reference in **[API.md](API.md)**. Highlights:
+### Page Request Endpoints
 
 | Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/lenses` | Available lenses. |
-| `GET` | `/api/feed?lens=` | Current mirrored feed + context + watch-history. |
-| `POST` | `/api/search` | Run a search in the live session. |
-| `POST` | `/api/watch` | Watch a video → feed evolves to recommendations. |
-| `POST` | `/api/home` | The blended home feed. |
-| `GET` | `/api/agent/state` | Agent state (active lens, budget, decisions). |
-| `POST` | `/api/agent/tick` | Run one agent decision (GLM, or rule fallback). |
-| `GET` | `/api/agent/stream` | SSE stream of the agent's live decision timeline. |
-| `GET` | `/agent` | The agent console (web UI). |
-| `GET` | `/health` | Health check. |
+|-------|----------|-------------|
+| `GET` | `/request?url=<url>` | Forward request to server with query parameter |
+| `GET` | `/request/<url>` | Transparent URL forwarding |
+| `GET` | `/*` | Catch-all: simpler alias (e.g., `/youtube.com`) |
 
----
+### Payment Endpoints
 
-## 🐳 Deployment
+| Method | Endpoint | Description |
+|-------|----------|-------------|
+| `GET` | `/payment/auth` | Payment authorization modal |
+| `POST` | `/payment/authorize` | Authorize payment (amount + userId) |
+| `GET` | `/payment/auth/check` | Check authorization status |
+| `GET` | `/payment/status/:sessionId` | Payment session status |
 
-The app ships a **Dockerfile** (Node 22 + system Chromium) and is deployed on **Coolify**.
+### Other Endpoints
+
+| Method | Endpoint | Description |
+|-------|----------|-------------|
+| `GET` | `/health` | Health check |
+| `GET` | `/` | API info and available endpoints |
+
+## Server Endpoints (Port 7070)
+
+### Page Request Endpoint
+
+| Method | Endpoint | Description |
+|-------|----------|-------------|
+| `GET` | `/request?url=<url>` | Fetch and render page with payment flow |
+
+**Behavior:**
+- No payment → Returns 402 with payment required HTML
+- Invalid payment → Returns 402 with error HTML
+- Valid payment → Fetches URL, renders with Puppeteer, returns HTML
+
+### Live-Algo API Endpoints
+
+| Method | Endpoint | Description |
+|-------|----------|-------------|
+| `GET` | `/` | Main web UI |
+| `GET` | `/api/lenses` | Available algorithm lenses |
+| `GET` | `/api/feed?lens=<id>` | Current feed for lens |
+| `POST` | `/api/search` | Search in live session (requires payment) |
+| `POST` | `/api/watch` | Watch video (requires payment) |
+| `POST` | `/api/home` | Blended home feed (requires payment) |
+| `GET` | `/health` | Health check |
+| `GET` | `/agent` | Agent console UI |
+
+### Activity Endpoints
+
+| Method | Endpoint | Description |
+|-------|----------|-------------|
+| `GET` | `/activity/:userId` | Recent activity for user |
+| `GET` | `/activity/:userId/summary` | Activity summary (hours parameter) |
+
+## CLI Commands
+
+### Start/Stop Services
 
 ```bash
-# local container
-docker compose up --build      # → http://localhost:7100
+# Start services
+npm run start-server    # Start server on port 7070
+npm run start-client    # Start client on port 6060
+
+# Stop services
+npm run stop            # Stop both server and client
+npm run stop-server     # Stop server only
+npm run stop-client     # Stop client only
+
+# Watch mode (auto-reload on changes)
+npm run watch-server    # Server with auto-reload
+npm run watch-client    # Client with auto-reload
 ```
 
-For production (Coolify / any Dockerfile host):
-1. Point the platform at this repo, **build pack: Dockerfile**, exposed **port 7100**.
-2. Set `ZAI_API_KEY` and `GLM_MODEL=glm-5.2` as **encrypted env vars** (not in the repo).
-3. Deploy. The live instance runs at **[googletine.boxgeist.com](https://googletine.boxgeist.com)**.
+### Persona Management
 
-> Build note: `npm ci` runs with `--legacy-peer-deps` (the `mppx` package declares a peerOptional `express>=5`; the app uses Express 4).
+```bash
+# Persona CLI
+npm run persona
 
----
-
-## 📂 Project structure
-
-```
-server/
-  live-algo-server.js     The YourAlgoMate server (lenses, feed, REST + SSE API)
-  agent/                  AlgoMate — the personal agent
-    agent.js                state, decision loop, console endpoints
-    glm.js                  minimal Z.ai (GLM) client, OpenAI-compatible
-  public/                 the web UI (index.html) + agent console (agent.html)
-  logs/                   activity logger (per-user searches & watches)
-shared/
-  payments/               MPP integration (mpp-client, mpp-server, sessions, …)
-  providers/ personas/    persona engine (legacy proxy)
-client/                   legacy payment proxy + payment modal UI
-Dockerfile, docker-compose.yml   containerised deployment
-API.md, CLI.md            full API + CLI reference
+# Available commands (use --help for more):
+# - List personas
+# - Create persona
+# - Delete persona
+# - Show persona details
 ```
 
----
+### Testing
 
-## 🗺️ Status & roadmap
+```bash
+# Run CLI tests
+npm run test
+npm run test:cli
+```
 
-**Working today:** live lenses · evolving feeds · blended home · in-page playback · the agent on GLM-5.2 · MPP payments · deployed in production.
+## Usage Examples
 
-**Next:** an agent scheduler (auto-switch by time/context) · persistent sessions across restarts · multi-user accounts · more lenses · beyond YouTube (X and other feed-driven platforms).
+### Browser Access (via Client)
 
----
+```bash
+# All these work the same:
+curl http://localhost:6060/youtube.com
+curl http://localhost:6060/https://youtube.com
+curl http://localhost:6060/request/https://youtube.com
+curl "http://localhost:6060/request?url=https://youtube.com"
+```
 
-<div align="center">
+### With Payment (Manual Testing)
 
-**[googletine.boxgeist.com](https://googletine.boxgeist.com)** — your content, someone else's algorithm.
+```bash
+# This will return 402 payment required
+curl http://localhost:6060/youtube.com
 
-</div>
+# After authorizing via payment modal, requests succeed
+# (client automatically includes payment header)
+```
+
+### Live-Algo Feature
+
+```bash
+# Get available lenses
+curl http://localhost:7070/api/lenses
+
+# Get feed for lens (without payment - may return 402)
+curl http://localhost:7070/api/feed?lens=dev
+
+# Search (with payment)
+curl -X POST http://localhost:7070/api/search \
+  -H "Content-Type: application/json" \
+  -H "X-Payment: '{\"transactionId\":\"test-123\",\"amount\":1000}'" \
+  -d '{"lens":"dev","query":"programming"}'
+```
+
+## Payment Configuration
+
+**Cost Structure:**
+- Per-page cost: 1000 units ($0.001 USDC)
+- Max single payment: 20,000 units ($0.02 USDC)
+- Authorization options: $1, $2, $5, $10 USDC
+
+**MPP Integration:**
+- Client manages MPP payment channels
+- User authorizes "up to" amount (e.g., $1 USDC)
+- Client signs individual micro-payments automatically
+- Server validates payments via MPP protocol
+
+## Project Structure
+
+```
+googletine-dom/
+├── client/
+│   └── express/
+│       ├── src/
+│       │   ├── server.js           # Client server (port 6060)
+│       │   ├── forwardRequest.js    # Request forwarding logic
+│       │   └── personas.js          # Persona management
+│       └── public/
+│           └── payment/              # Payment authorization modal
+│               ├── index.html
+│               ├── css/
+│               └── js/
+├── server/
+│   ├── live-algo-server.js          # Main server (port 7070)
+│   ├── dom-server.js                # Legacy DOM server (unused)
+│   ├── youralgomate-proxy.js        # YourAlgoMate AI integration
+│   ├── agent/                        # AlgoMate agent
+│   ├── public/                       # Web UI
+│   └── logs/                         # Activity logging
+├── shared/
+│   ├── payments/                     # MPP payment integration
+│   ├── providers/                    # Content providers (YouTube, etc.)
+│   └── personas/                     # Persona engine
+├── API.md                            # Full API documentation
+├── CLI.md                            # CLI reference
+└── README.md                         # This file
+```
+
+## Deployment
+
+### Docker
+
+```bash
+# Build and run
+docker compose up --build
+
+# Access
+# - Client: http://localhost:6060
+# - Server: http://localhost:7070
+```
+
+### Production
+
+1. Set environment variables (ports, API keys)
+2. Deploy server and client separately
+3. Configure MPP payment channels
+4. Set up reverse proxy if needed
+
+## Development
+
+**Payment Modal Development:**
+
+The payment modal is based on MPP.dev templates. Key files:
+- `/client/public/payment/index.html` - Modal UI
+- `/client/public/payment/js/authorize.js` - Authorization logic
+- `/client/public/payment/css/modal.css` - Styling
+
+**Payment Flow Debugging:**
+
+```bash
+# Check authorization status
+curl http://localhost:6060/payment/auth/check?userId=test-user
+
+# Test payment endpoint
+curl -X POST http://localhost:6060/payment/authorize \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"test-user","amount":1000000}'
+```
+
+## Status & Roadmap
+
+**Working:**
+- ✅ Client-server architecture
+- ✅ Payment flow with 402 responses
+- ✅ Puppeteer HTML rendering
+- ✅ Payment authorization modal
+- ✅ Transparent URL forwarding
+- ✅ Live-algo feature with lenses
+
+**In Progress:**
+- 🔄 MPP payment channel integration
+- 🔄 Multi-session support
+- 🔄 Enhanced payment modal
+
+**Planned:**
+- 📋 Persistent sessions across restarts
+- 📋 Multi-user accounts
+- 📋 Beyond YouTube (X, other platforms)
+- 📋 Agent scheduler (auto-switch by context)
