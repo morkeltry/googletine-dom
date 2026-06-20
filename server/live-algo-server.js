@@ -9,6 +9,7 @@ import { dirname, join } from 'path';
 import * as activityLogger from './logs/activity-logger.js';
 import * as mppServer from '../shared/payments/mpp-server.js';
 import * as mppClient from '../shared/payments/mpp-client.js';
+import { mountAgent } from './agent/agent.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.GOOGLETINE_SERVER_PORT || process.env.LIVE_PORT || 7070;
@@ -254,6 +255,9 @@ async function verifyPaymentFromRequest(req) {
 const app = express();
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
+
+// AlgoMate agent: state + console endpoints (step 1)
+mountAgent(app);
 
 app.get('/api/lenses', (req, res) => res.json(Object.values(LENSES)));
 

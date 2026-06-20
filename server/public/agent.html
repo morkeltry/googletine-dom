@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AlgoMate — Agent Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Hanken+Grotesk:wght@400;500;600;700&family=Spline+Sans+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#F4F2EC; --paper-2:#EDEAE0; --card:#FBFAF6;
+    --ink:#1A1915; --ink-soft:#4A4740; --ink-faint:#837E72;
+    --clay:#C4623F; --clay-deep:#A24E33; --sand:#D9B48A;
+    --line:#DBD7CB; --line-soft:#E6E2D7; --slate:#3D4A4D; --green:#5E7A5A; --steel:#4a5a66;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--paper);color:var(--ink);font-family:'Hanken Grotesk',sans-serif;font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");}
+  ::selection{background:var(--clay);color:var(--paper);}
+  .wrap{max-width:860px;margin:0 auto;padding:0 26px;}
+  h1,h2,h3{font-family:'Fraunces',serif;letter-spacing:-.015em;line-height:1.1;font-weight:500;}
+  .mono{font-family:'Spline Sans Mono',monospace;}
+
+  header{padding:42px 0 22px;}
+  .brand{display:flex;align-items:center;gap:11px;margin-bottom:18px;}
+  .glyph{width:28px;height:28px;border-radius:8px;background:var(--clay);display:grid;place-items:center;color:var(--paper);font-family:'Spline Sans Mono',monospace;font-weight:600;font-size:15px;box-shadow:0 2px 0 var(--clay-deep);}
+  .brand b{font-family:'Fraunces',serif;font-size:19px;font-weight:600;letter-spacing:-.02em;}
+  .live{margin-left:auto;display:flex;align-items:center;gap:7px;font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--ink-faint);}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-faint);}
+  .live.on .dot{background:var(--green);box-shadow:0 0 0 3px color-mix(in srgb,var(--green) 22%,transparent);}
+  .eyebrow{font-family:'Spline Sans Mono',monospace;font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--clay-deep);}
+  h1{font-size:clamp(26px,4vw,38px);font-weight:400;margin:10px 0 0;}
+  h1 em{font-style:italic;color:var(--clay);}
+  .sub{color:var(--ink-soft);margin-top:10px;max-width:60ch;}
+
+  /* status panel */
+  .panel{margin-top:24px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px;display:grid;gap:18px;}
+  .row{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .lenschip{display:flex;align-items:center;gap:10px;background:linear-gradient(165deg,#FBF6EE,#F6EEE2);border:1px solid var(--sand);border-radius:12px;padding:10px 16px;}
+  .lenschip .em{font-size:22px;}
+  .lenschip .k{font-family:'Spline Sans Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--clay-deep);}
+  .lenschip .n{font-family:'Fraunces',serif;font-size:18px;font-weight:600;}
+  .budget{flex:1;min-width:220px;}
+  .budget .lab{display:flex;justify-content:space-between;font-family:'Spline Sans Mono',monospace;font-size:11.5px;color:var(--ink-faint);margin-bottom:6px;}
+  .budget .lab b{color:var(--clay-deep);}
+  .bar{height:9px;border-radius:6px;background:var(--paper-2);overflow:hidden;}
+  .bar > span{display:block;height:100%;background:var(--clay);transition:width .4s cubic-bezier(.2,.7,.2,1);}
+
+  .controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center;}
+  .btn{cursor:pointer;border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 14px;font-family:'Hanken Grotesk';font-size:14px;color:var(--ink-soft);display:inline-flex;align-items:center;gap:7px;transition:border-color .2s,transform .15s,background .2s;}
+  .btn:hover{border-color:var(--sand);transform:translateY(-1px);}
+  .btn.lens.active{border-color:var(--clay);box-shadow:0 0 0 2px color-mix(in srgb,var(--clay) 22%,transparent);background:#FBF3E8;}
+  .btn.primary{background:var(--ink);color:var(--paper);border-color:var(--ink);}
+  .btn.primary:hover{background:var(--clay);border-color:var(--clay);}
+  .btn.warn{color:var(--clay-deep);}
+  .sep{width:1px;height:24px;background:var(--line);}
+
+  .tlhead{display:flex;align-items:baseline;gap:12px;margin:30px 0 10px;}
+  .tlhead h2{font-size:20px;}
+  .tlhead .n{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--ink-faint);}
+
+  .timeline{display:grid;gap:8px;padding-bottom:60px;}
+  .ev{display:grid;grid-template-columns:84px 1fr auto;gap:14px;align-items:start;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 16px;animation:pop .35s cubic-bezier(.2,.7,.2,1);}
+  @keyframes pop{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+  .ph{font-family:'Spline Sans Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-align:center;padding:4px 0;border-radius:6px;align-self:start;}
+  .ph.SENSE{background:#e8eef0;color:var(--steel);}
+  .ph.DECIDE{background:#f4ead7;color:#9a6a3c;}
+  .ph.ACT{background:color-mix(in srgb,var(--clay) 15%,transparent);color:var(--clay-deep);}
+  .ph.NARRATE{background:#e9f0e7;color:#46603f;}
+  .ev .msg{font-size:14.5px;color:var(--ink);}
+  .ev .msg .lens{font-family:'Spline Sans Mono',monospace;font-size:12px;color:var(--clay-deep);}
+  .ev .t{font-family:'Spline Sans Mono',monospace;font-size:11px;color:var(--ink-faint);white-space:nowrap;}
+  .paused-flag{display:none;margin-top:6px;font-family:'Spline Sans Mono',monospace;font-size:11.5px;color:var(--clay-deep);}
+  .paused .paused-flag{display:block;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="glyph">A</span><b>AlgoMate</b>
+      <span class="live" id="live"><span class="dot"></span> <span id="liveTxt">connecting…</span></span>
+    </div>
+    <p class="eyebrow">Agent console</p>
+    <h1>Watch your agent <em>think</em>.</h1>
+    <p class="sub">AlgoMate looks after your feed and pays the pennies. Everything it does shows up here — live, and reversible.</p>
+  </header>
+
+  <div class="panel" id="panel">
+    <div class="row">
+      <div class="lenschip">
+        <span class="em" id="lensEm">👨‍💻</span>
+        <span><span class="k">now viewing</span><span class="n" id="lensName">Developer</span></span>
+      </div>
+      <div class="budget">
+        <div class="lab"><span>session budget</span><span><b id="bSpent">€0.00</b> / <span id="bTotal">€2.00</span></span></div>
+        <div class="bar"><span id="bBar" style="width:0%"></span></div>
+      </div>
+    </div>
+    <div class="controls">
+      <span class="k mono" style="font-size:11px;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.12em;">override</span>
+      <button class="btn lens" data-lens="dev">👨‍💻 Developer</button>
+      <button class="btn lens" data-lens="cat">🐱 Cat Lover</button>
+      <span class="sep"></span>
+      <button class="btn warn" id="pauseBtn">⏸ Pause</button>
+      <button class="btn primary" id="simBtn">▶ Run a cycle</button>
+    </div>
+    <div class="paused-flag" id="pausedFlag">⏸ paused — you’re in control. The agent won’t act until you resume.</div>
+  </div>
+
+  <div class="tlhead">
+    <h2>Decision timeline</h2><span class="n" id="count">0 entries</span>
+  </div>
+  <div class="timeline" id="timeline"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmtTime = ts => { const d = new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'}); };
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+let snap = null;
+
+function renderState(s){
+  snap = s;
+  $('lensEm').textContent = s.activeLensMeta?.emoji || '•';
+  $('lensName').textContent = s.activeLensMeta?.name || s.activeLens;
+  $('bSpent').textContent = '€' + s.budget.spent.toFixed(2);
+  $('bTotal').textContent = '€' + s.budget.total.toFixed(2);
+  $('bBar').style.width = Math.min(100, (s.budget.spent / s.budget.total) * 100) + '%';
+  document.querySelectorAll('.btn.lens').forEach(b => b.classList.toggle('active', b.dataset.lens === s.activeLens));
+  $('pauseBtn').textContent = s.paused ? '▶ Resume' : '⏸ Pause';
+  $('panel').classList.toggle('paused', s.paused);
+}
+
+function evHtml(e){
+  const lens = e.lens ? ` <span class="lens">→ ${esc(e.lens)}</span>` : '';
+  return `<div class="ev"><span class="ph ${esc(e.phase)}">${esc(e.phase)}</span>`
+       + `<span class="msg">${esc(e.message)}${lens}</span>`
+       + `<span class="t">${fmtTime(e.ts)}</span></div>`;
+}
+
+function renderTimeline(list){
+  $('timeline').innerHTML = list.slice().reverse().map(evHtml).join('');
+  $('count').textContent = list.length + (list.length===1?' entry':' entries');
+}
+function prepend(e){
+  $('timeline').insertAdjacentHTML('afterbegin', evHtml(e));
+  const n = $('timeline').children.length;
+  $('count').textContent = n + (n===1?' entry':' entries');
+}
+
+// live stream
+function connect(){
+  const es = new EventSource('/api/agent/stream');
+  es.addEventListener('snapshot', ev => { const s = JSON.parse(ev.data); renderState(s); renderTimeline(s.decisions); $('live').classList.add('on'); $('liveTxt').textContent = 'live'; });
+  es.addEventListener('decision', ev => { const e = JSON.parse(ev.data); prepend(e); fetch('/api/agent/state').then(r=>r.json()).then(renderState); });
+  es.onerror = () => { $('live').classList.remove('on'); $('liveTxt').textContent = 'reconnecting…'; };
+}
+connect();
+
+// controls
+const post = (path, body) => fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})}).then(r=>r.json()).then(renderState);
+document.querySelectorAll('.btn.lens').forEach(b => b.addEventListener('click', () => post('/api/agent/lens', {lens:b.dataset.lens, reason:'Manual override by you'})));
+$('pauseBtn').addEventListener('click', () => post('/api/agent/pause', {paused: !(snap && snap.paused)}));
+$('simBtn').addEventListener('click', () => post('/api/agent/simulate'));
+</script>
+</body>
+</html>
