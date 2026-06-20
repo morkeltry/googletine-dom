@@ -236,18 +236,13 @@ const processRequest = async (url, clientResponse, req, useGet = false) => {
 
 			// Retry request with payment
 			const paymentHeaders = createPaymentHeaders(paymentResult);
-			const retryResponse = await fetch(remoteUrl, {
-				method: 'POST',
+			const retryUrl = `${remoteUrl}?${new URLSearchParams({ url: normalizedUrl }).toString()}`;
+			const retryResponse = await fetch(retryUrl, {
+				method: 'GET',
 				headers: {
-					'Content-Type': 'application/json',
 					...buildForwardHeaders(req),
 					...paymentHeaders
-				},
-				body: JSON.stringify({
-					url: normalizedUrl,
-					payment: paymentResult,
-					personaId: personaParam
-				})
+				}
 			});
 
 			if (!retryResponse.ok) {
