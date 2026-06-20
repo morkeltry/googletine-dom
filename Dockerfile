@@ -22,8 +22,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # Production deps only; PUPPETEER_SKIP_DOWNLOAD avoids a second Chromium.
+# --legacy-peer-deps: mppx declares a peerOptional express>=5 (we use express 4).
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev && npm cache clean --force
+RUN npm ci --omit=dev --legacy-peer-deps && npm cache clean --force
 
 # The YourAlgoMate server + its static UI + activity logger.
 COPY server ./server
