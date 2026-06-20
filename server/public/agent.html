@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AlgoMate — Agent Console</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 18 11.4 7'/%3E%3Cpath d='M18 18 12.6 7'/%3E%3Cpath d='M8.3 14h7.4'/%3E%3C/g%3E%3Ccircle cx='12' cy='5.2' r='1.6' fill='%23fff'/%3E%3C/svg%3E" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='24' y2='24' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%232d2d2d'/%3E%3Cstop offset='1' stop-color='%23050505'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='6.5' fill='url(%23g)'/%3E%3Cpath fill='%23fff' fill-rule='evenodd' d='M10.8 4.2H13.2L20.4 20H16.7L15 16.2H9L7.3 20H3.6ZM10.4 9.4V14.6L14.6 12Z'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
@@ -21,8 +21,8 @@
 
   header{padding:46px 0 24px;}
   .brand{display:flex;align-items:center;gap:11px;margin-bottom:22px;}
-  .glyph{width:27px;height:27px;border-radius:7px;background:var(--ink);display:grid;place-items:center;color:var(--bg);}
-  .glyph .ic{width:15px;height:15px;}
+  .glyph{width:28px;height:28px;flex:none;display:block;}
+  .glyph svg{width:100%;height:100%;display:block;}
   .brand b{font-weight:700;font-size:17px;letter-spacing:-.03em;}
   .live{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:var(--ink-3);line-height:1;white-space:nowrap;}
   .live .dot{width:8px;height:8px;border-radius:50%;background:var(--line-2);}
@@ -151,7 +151,7 @@
 
 <script>
 const IC = {
-  logo:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 19 11.4 6.6"/><path d="M18.5 19 12.6 6.6"/><path d="M8 14.3h8"/><circle cx="12" cy="4.8" r="1.7" fill="currentColor" stroke="none"/></svg>',
+  logo:  '<svg viewBox="0 0 24 24"><defs><linearGradient id="amg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2f2f2f"/><stop offset="1" stop-color="#050505"/></linearGradient></defs><rect width="24" height="24" rx="6.5" fill="url(#amg)"/><rect x=".6" y=".6" width="22.8" height="22.8" rx="6" fill="none" stroke="rgba(255,255,255,.08)"/><path fill="#fff" fill-rule="evenodd" d="M10.8 4.2H13.2L20.4 20H16.7L15 16.2H9L7.3 20H3.6ZM10.4 9.4V14.6L14.6 12Z"/></svg>',
   code:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
   cat:   '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17z"/></svg>',
   lens:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg>',
