@@ -6,7 +6,6 @@ npm-debug.log
 
 # Not needed at runtime by the live-algo server
 client
-shared
 guil-cli.js
 youtube-dom-forwarder.js
 live-algo
