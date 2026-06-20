@@ -1,0 +1,25 @@
+# Keep the build context small (and out of the image)
+.git
+node_modules
+npm-debug.log
+*.log
+
+# Not needed at runtime by the live-algo server
+client
+shared
+guil-cli.js
+youtube-dom-forwarder.js
+live-algo
+test-*.js
+test-results.log
+overlay-analysis.txt
+consent-automation
+consentautomation
+server/express
+server/dom-server.js
+
+# Docs / deploy scaffolding
+*.md
+deploy.sh
+docker-compose*.yml
+Dockerfile
