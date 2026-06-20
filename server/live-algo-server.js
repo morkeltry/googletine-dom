@@ -360,7 +360,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'live-algo', timestamp: Date.now(), lenses: Object.keys(LENSES) });
 });
 
-// Page request endpoint - handles payment flow and forwards pages
+// Page request endpoint - handles payment flow and renders pages using Puppeteer
 // This is where the browser (via client) requests actual pages
 app.get('/request', async (req, res) => {
   try {
@@ -401,35 +401,29 @@ app.get('/request', async (req, res) => {
       return res.send(`<!DOCTYPE html><html><head><title>402 Payment Invalid</title></head><body><h1>402 Payment Invalid</h1><p>${verification.error}</p></body></html>`);
     }
 
-    // Payment valid - fetch the actual page
-    console.log(`[request] Payment valid, fetching: ${url}`);
+    // Payment valid - render the page using Puppeteer
+    console.log(`[request] Payment valid, rendering: ${url}`);
 
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': UA,
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Accept-Encoding': 'identity'
-      }
-    });
+    const b = await getBrowser();
+    const page = await b.newPage();
 
-    // Forward status and headers
-    res.status(response.status);
-    response.headers.forEach((value, key) => {
-      if (key.toLowerCase() !== 'transfer-encoding') {
-        res.setHeader(key, value);
-      }
-    });
+    try {
+      await page.setUserAgent(UA);
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 35000 });
+      await delay(700); // Let JS execute
 
-    // Stream response body
-    if (response.body) {
-      for await (const chunk of response.body) {
-        res.write(chunk);
-      }
-      res.end();
-    } else {
-      const buffer = await response.arrayBuffer();
-      res.send(Buffer.from(buffer));
+      // Remove consent overlays
+      await page.evaluate(NUKE);
+
+      // Get the rendered HTML
+      const html = await page.content();
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+
+      console.log(`[request] ✓ Rendered ${html.length} bytes`);
+    } finally {
+      await page.close();
     }
 
   } catch (e) {
