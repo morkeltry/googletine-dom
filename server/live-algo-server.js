@@ -354,26 +354,88 @@ app.post('/api/home', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// Legacy proxy endpoint for client compatibility
-// GET /request - supports query parameter format
-app.get('/request', async (req, res) => {
-  try {
-    const { url } = req.query;
-    if (!url) return res.status(400).json({ error: 'URL parameter required' });
-    // For YouTube URLs, redirect to appropriate live-algo endpoint
-    if (url.includes('youtube.com') || url.includes('youtu.be')) {
-      const s = await ensure('dev');
-      res.json({ feed: s.feed, context: s.context, watched: s.watched, sources: blendSources(s) });
-    } else {
-      // For non-YouTube, return a simple placeholder response
-      res.status(501).json({ error: 'Non-YouTube URLs not yet supported in live-algo mode' });
-    }
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
 
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'live-algo', timestamp: Date.now(), lenses: Object.keys(LENSES) });
+});
+
+// Page request endpoint - handles payment flow and forwards pages
+// This is where the browser (via client) requests actual pages
+app.get('/request', async (req, res) => {
+  try {
+    const { url } = req.query;
+    if (!url) return res.status(400).send('URL parameter required');
+
+    console.log(`[request] Page request for: ${url}`);
+
+    // Check for valid payment
+    if (!hasValidPayment(req)) {
+      // Payment required - return 402
+      const sessionId = getSessionId(req);
+      const paymentReq = mppServer.requiresPayment('/request', sessionId);
+
+      res.status(402);
+      res.setHeader('X-Payment-Required', JSON.stringify(paymentReq));
+      res.setHeader('Content-Type', 'text/html');
+
+      // Generate simple 402 page
+      const html402 = `<!DOCTYPE html>
+<html>
+<head><title>402 Payment Required</title></head>
+<body>
+  <h1>402 Payment Required</h1>
+  <p>Payment of ${paymentReq.amount} ${paymentReq.currency} required</p>
+  <p>Session: ${paymentReq.sessionId}</p>
+  <p>Include payment details in X-Payment header and retry.</p>
+</body>
+</html>`;
+      return res.send(html402);
+    }
+
+    // Verify payment
+    const verification = await verifyPaymentFromRequest(req);
+    if (!verification.valid) {
+      res.status(402);
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(`<!DOCTYPE html><html><head><title>402 Payment Invalid</title></head><body><h1>402 Payment Invalid</h1><p>${verification.error}</p></body></html>`);
+    }
+
+    // Payment valid - fetch the actual page
+    console.log(`[request] Payment valid, fetching: ${url}`);
+
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': UA,
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'identity'
+      }
+    });
+
+    // Forward status and headers
+    res.status(response.status);
+    response.headers.forEach((value, key) => {
+      if (key.toLowerCase() !== 'transfer-encoding') {
+        res.setHeader(key, value);
+      }
+    });
+
+    // Stream response body
+    if (response.body) {
+      for await (const chunk of response.body) {
+        res.write(chunk);
+      }
+      res.end();
+    } else {
+      const buffer = await response.arrayBuffer();
+      res.send(Buffer.from(buffer));
+    }
+
+  } catch (e) {
+    console.error('[request] Error:', e.message);
+    res.status(500).send(`Error: ${e.message}`);
+  }
 });
 
 // Activity endpoints

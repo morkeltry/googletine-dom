@@ -165,4 +165,26 @@ server.get('/payment/status/:sessionId', (req, res) => {
 	}
 });
 
+// Catch-all route: simpler alias for transparent URL access
+// Allows localhost:6060/some.url as alias for localhost:6060/request/some.url
+// Must be last so it doesn't intercept specific routes
+server.get('/*', (req, res) => {
+	// Extract URL from path (everything after /)
+	const urlPath = req.path.substring(1); // Remove leading '/'
+	const decodedUrl = decodeURIComponent(urlPath);
+
+	// Temporarily modify the request object
+	const originalQuery = req.query;
+	req.query = {
+		url: decodedUrl,
+		...originalQuery
+	};
+
+	// Call the forward request handler
+	forwardRequest.get(req, res);
+
+	// Restore original query
+	req.query = originalQuery;
+});
+
 export default server;
