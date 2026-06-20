@@ -1,0 +1,36 @@
+# YourAlgoMate live-algo — DEVELOPMENT
+#
+#   docker compose up --build      # → http://localhost:7100
+#
+# Builds from the local context, publishes the port, and bind-mounts server/ so
+# `node --watch` restarts on edits. Chromium runs headless inside the container.
+
+services:
+  youralgomate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: youralgomate-dev
+    command: ["node", "--watch", "server/live-algo-server.js"]
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=development
+      - LIVE_PORT=7100
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+    ports:
+      - "7100:7100"
+    # edit server/ on the host and the server restarts automatically
+    volumes:
+      - ./server:/app/server
+    # Chromium needs more shared memory than Docker's default 64 MB
+    shm_size: "512m"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:7100/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 25s
