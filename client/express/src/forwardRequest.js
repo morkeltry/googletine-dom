@@ -211,7 +211,7 @@ const processRequest = async (url, clientResponse, req, useGet = false) => {
 			// If no authorization or expired, redirect to authorization modal
 			if (!authStatus.hasAuthorization) {
 				console.log('No authorization - redirecting to payment modal');
-				return client.redirect(302, `/payment/auth?redirect=${encodeURIComponent(normalizedUrl)}&amount=${paymentRequest.amount}`);
+				return clientResponse.redirect(302, `/payment/auth?redirect=${encodeURIComponent(normalizedUrl)}&amount=${paymentRequest.amount}`);
 			}
 
 			// Execute payment
@@ -223,7 +223,7 @@ const processRequest = async (url, clientResponse, req, useGet = false) => {
 				// Check if re-authorization is needed
 				if (paymentResult.needsAuthorization) {
 					console.log('Re-authorization needed - redirecting to payment modal');
-					return client.redirect(302, `/payment/auth?redirect=${encodeURIComponent(normalizedUrl)}&amount=${paymentRequest.amount}&reason=${paymentResult.reason}`);
+					return clientResponse.redirect(302, `/payment/auth?redirect=${encodeURIComponent(normalizedUrl)}&amount=${paymentRequest.amount}&reason=${paymentResult.reason}`);
 				}
 
 				clientResponse.status(402).send({ error: paymentResult.error || 'Payment failed' });
