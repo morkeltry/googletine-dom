@@ -1,0 +1,10 @@
+{
+  "id": "time-awareness",
+  "name": "Time Awareness",
+  "description": "Tell the current day and time",
+  "enabled": true,
+  "prompt": "You have access to the current date and time. When users ask about time, date, days of the week, or temporal questions, provide accurate information based on the current timestamp: {current_time}. Always be helpful and precise with time-related queries.",
+  "parameters": {
+    "current_time": "{timestamp}"
+  }
+}

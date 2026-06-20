@@ -1,6 +1,6 @@
 # YourAlgoMate
 
-Service connected to set.ai using GLM model with multi-user support.
+Service connected to set.ai using GLM model with multi-user support and skills.
 
 ## Setup
 
@@ -44,7 +44,8 @@ Process a request with the GLM model for a specific user.
 ```json
 {
   "userMessage": "Your question or request here",
-  "userId": "user1"
+  "userId": "user1",
+  "enableSkills": true
 }
 ```
 
@@ -69,7 +70,8 @@ Health check endpoint.
 {
   "status": "ok",
   "service": "youralgomate",
-  "timestamp": "2026-06-20T00:00:00.000Z"
+  "timestamp": "2026-06-20T00:00:00.000Z",
+  "skills_loaded": 3
 }
 ```
 
@@ -85,6 +87,56 @@ Get list of available users.
 }
 ```
 
+### GET /skills
+
+Get list of available skills.
+
+**Response:**
+```json
+{
+  "skills": [
+    {
+      "id": "time-awareness",
+      "name": "Time Awareness",
+      "description": "Tell the current day and time",
+      "enabled": true
+    },
+    {
+      "id": "mood-assessment",
+      "name": "Mood Assessment",
+      "description": "Assess user's mood from their search history",
+      "enabled": true
+    },
+    {
+      "id": "obsessions-monitor",
+      "name": "Obsessions Monitor",
+      "description": "Monitor and report on user's topics of interest",
+      "enabled": true
+    }
+  ],
+  "registry": {...}
+}
+```
+
+### GET /skills/:skillId
+
+Get details for a specific skill.
+
+### POST /skills/:skillId/invoke
+
+Invoke a specific skill directly.
+
+**Request:**
+```json
+{
+  "userId": "user1",
+  "parameters": {
+    "search_history": "...",
+    "obsessions_list": "..."
+  }
+}
+```
+
 ## Multi-User Structure
 
 Each user has their own prompt file in `prompts/users/`:
@@ -96,6 +148,55 @@ The system combines:
 1. System prompt (shared)
 2. User-specific prompt
 3. Current user message
+4. Active skills context
+
+## Skills
+
+Skills are modular capabilities that enhance the AI's responses. Each skill has:
+- `id`: Unique identifier
+- `name`: Display name
+- `description`: What the skill does
+- `enabled`: Whether the skill is active
+- `prompt`: Skill-specific prompt template
+- `parameters`: Required/optional parameters
+
+### Available Skills
+
+**Time Awareness**
+- Tells the current day and time
+- Automatically provides current timestamp in requests
+
+**Mood Assessment**
+- Analyzes user's mood from search history
+- Requires: search_history, recent_interactions, activity_patterns
+
+**Obsessions Monitor**
+- Tracks and reports on topics of interest
+- Current obsessions:
+  - Ethereum price (hourly updates)
+  - Middle East conflicts (daily)
+  - Cybersecurity events (daily)
+  - DeFi hacks (daily)
+  - UK politics/Keir Starmer (daily)
+
+### Adding New Skills
+
+Create a new JSON file in `skills/` directory:
+
+```json
+{
+  "id": "your-skill-id",
+  "name": "Your Skill Name",
+  "description": "What your skill does",
+  "enabled": true,
+  "prompt": "Your skill prompt template with {parameters}",
+  "parameters": {
+    "param1": "{value1}"
+  }
+}
+```
+
+Then update `skills/index.json` to register the skill.
 
 ## Integration
 

@@ -1,0 +1,26 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-06-20",
+  "skills": [
+    "time-awareness",
+    "mood-assessment",
+    "obsessions-monitor"
+  ],
+  "skill_registry": {
+    "time-awareness": {
+      "file": "time-awareness.json",
+      "enabled": true,
+      "priority": 1
+    },
+    "mood-assessment": {
+      "file": "mood-assessment.json",
+      "enabled": true,
+      "priority": 2
+    },
+    "obsessions-monitor": {
+      "file": "obsessions-monitor.json",
+      "enabled": true,
+      "priority": 3
+    }
+  }
+}

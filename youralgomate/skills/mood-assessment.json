@@ -1,0 +1,17 @@
+{
+  "id": "mood-assessment",
+  "name": "Mood Assessment",
+  "description": "Assess user's mood from their search history and interaction patterns",
+  "enabled": true,
+  "prompt": "You are skilled at understanding emotional states from search history and behavior patterns. When provided with search history or recent interactions, analyze the user's mood and emotional state. Look for patterns in topics searched, time of activity, language used, and content consumed. Provide insights about the user's current emotional state, stress levels, interests, and overall mood. Be empathetic but objective in your analysis.",
+  "parameters": {
+    "search_history": "{search_history}",
+    "recent_interactions": "{recent_interactions}",
+    "activity_patterns": "{activity_patterns}"
+  },
+  "data_sources": [
+    "search_history",
+    "user_interactions",
+    "activity_timestamps"
+  ]
+}

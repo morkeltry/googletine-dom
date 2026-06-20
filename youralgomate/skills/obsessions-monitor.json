@@ -1,0 +1,67 @@
+{
+  "id": "obsessions-monitor",
+  "name": "Obsessions Monitor",
+  "description": "Monitor and report on user's topics of interest (obsessions)",
+  "enabled": true,
+  "prompt": "The user has specific topics they care deeply about and want regular updates on. When asked, provide the latest information on these topics. For each obsession, gather current data, summarize key developments, and highlight anything significant that has changed since the last update. Be concise but thorough - focus on what matters most to the user.",
+  "parameters": {
+    "obsessions": "{obsessions_list}"
+  },
+  "obsessions": [
+    {
+      "id": "eth-price",
+      "name": "Ethereum Price",
+      "description": "Current ETH price and significant movements",
+      "enabled": true,
+      "update_frequency": "hourly",
+      "data_sources": [
+        "price_apis",
+        "market_data"
+      ]
+    },
+    {
+      "id": "middle-east-wars",
+      "name": "Middle East Conflicts",
+      "description": "Latest news on wars and conflicts in the Middle East",
+      "enabled": true,
+      "update_frequency": "daily",
+      "data_sources": [
+        "news_apis",
+        "conflict_monitors"
+      ]
+    },
+    {
+      "id": "cybersecurity-events",
+      "name": "Cybersecurity Events",
+      "description": "Major cybersecurity incidents, breaches, and threats",
+      "enabled": true,
+      "update_frequency": "daily",
+      "data_sources": [
+        "security_feeds",
+        "threat_intelligence"
+      ]
+    },
+    {
+      "id": "defi-hacks",
+      "name": "DeFi Hacks",
+      "description": "Major DeFi exploits, hacks, and security incidents",
+      "enabled": true,
+      "update_frequency": "daily",
+      "data_sources": [
+        "defi_monitors",
+        "blockchain_analysis"
+      ]
+    },
+    {
+      "id": "uk-politics",
+      "name": "UK Politics",
+      "description": "Latest on UK political developments, including Keir Starmer",
+      "enabled": true,
+      "update_frequency": "daily",
+      "data_sources": [
+        "news_apis",
+        "political_feeds"
+      ]
+    }
+  ]
+}
