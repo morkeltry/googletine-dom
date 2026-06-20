@@ -15,12 +15,12 @@
     "nodemon": "^3.0.2"
   },
   "scripts": {
-    "start-server": "node server/express/src/index.js",
+    "start-server": "node server/live-algo-server.js",
     "start-client": "node client/express/src/index.js",
-    "watch-server": "nodemon --signal SIGHUP server/express/src/index.js",
+    "watch-server": "nodemon --signal SIGHUP server/live-algo-server.js",
     "watch-client": "nodemon --signal SIGHUP client/express/src/index.js",
-    "stop": "pkill -f 'server/express/src/index.js' && pkill -f 'client/express/src/index.js'",
-    "stop-server": "pkill -f 'server/express/src/index.js'",
+    "stop": "pkill -f 'server/live-algo-server.js' && pkill -f 'client/express/src/index.js'",
+    "stop-server": "pkill -f 'server/live-algo-server.js'",
     "stop-client": "pkill -f 'client/express/src/index.js'",
     "persona": "node guil-cli.js",
     "test": "node test-cli.js",
