@@ -2,6 +2,7 @@
 // One persistent headless Chromium page per lens. Our page is a mirror; clicking/searching
 // drives the real YouTube session, whose watch-history makes the feed evolve.
 
+import './load-env.js'; // load repo-root .env before any module reads process.env
 import express from 'express';
 import puppeteer from 'puppeteer';
 import { fileURLToPath } from 'url';
@@ -9,7 +10,8 @@ import { dirname, join } from 'path';
 import * as activityLogger from './logs/activity-logger.js';
 import * as mppServer from '../shared/payments/mpp-server.js';
 import * as mppClient from '../shared/payments/mpp-client.js';
-import { mountAgent } from './agent/agent.js';
+import { mountAgent, recordPayment } from './agent/agent.js';
+import { viewCharge, payForView } from './payments/mpp.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.GOOGLETINE_SERVER_PORT || process.env.LIVE_PORT || 7070;
@@ -289,82 +291,31 @@ app.get('/api/feed', async (req, res) => {
 });
 
 app.post('/api/search', async (req, res) => {
+  // The human navigates freely; the agent settles real fees server-side (per view).
   try {
-    const sessionId = getSessionId(req);
-
-    // Check for valid payment
-    if (!hasValidPayment(req)) {
-      // Payment required - return 402
-      const paymentReq = mppServer.requiresPayment('/api/search', sessionId);
-      return res.status(402).json({
-        payment: paymentReq,
-        message: 'Payment required for search'
-      });
-    }
-
-    // Verify payment
-    const verification = await verifyPaymentFromRequest(req);
-    if (!verification.valid) {
-      return res.status(402).json({
-        error: verification.error,
-        message: 'Payment verification failed'
-      });
-    }
-
     res.json(await doSearch(req.body.lens, req.body.query));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/watch', async (req, res) => {
   try {
-    const sessionId = getSessionId(req);
-
-    // Check for valid payment
-    if (!hasValidPayment(req)) {
-      // Payment required - return 402
-      const paymentReq = mppServer.requiresPayment('/api/watch', sessionId);
-      return res.status(402).json({
-        payment: paymentReq,
-        message: 'Payment required for watch'
-      });
-    }
-
-    // Verify payment
-    const verification = await verifyPaymentFromRequest(req);
-    if (!verification.valid) {
-      return res.status(402).json({
-        error: verification.error,
-        message: 'Payment verification failed'
-      });
-    }
-
-    res.json(await doWatch(req.body.lens, req.body.videoId, req.body.title));
+    const result = await doWatch(req.body.lens, req.body.videoId, req.body.title);
+    res.json(result);
+    // The agent pays the per-view algorithm fee in the background (real Tempo micro-tx).
+    // The human already has their feed — they never wait on the payment.
+    const selfBase = `http://127.0.0.1:${PORT}`;
+    payForView(selfBase, { videoId: req.body.videoId, title: req.body.title })
+      .then((p) => recordPayment({ videoId: req.body.videoId, title: req.body.title, tx: p.tx, ok: p.ok && !!p.tx }))
+      .catch(() => recordPayment({ videoId: req.body.videoId, title: req.body.title, ok: false }));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// The algorithm-seller's paid endpoint — the agent pays this once per watched view.
+// viewCharge issues a real mppx/Tempo 402; on payment the funds land in the seller wallet.
+app.get('/api/algo/view', viewCharge, (req, res) => res.json({ ok: true, granted: true, v: req.query.v || null }));
+
 app.post('/api/home', async (req, res) => {
   try {
-    const sessionId = getSessionId(req);
-
-    // Check for valid payment
-    if (!hasValidPayment(req)) {
-      // Payment required - return 402
-      const paymentReq = mppServer.requiresPayment('/api/home', sessionId);
-      return res.status(402).json({
-        payment: paymentReq,
-        message: 'Payment required for home feed'
-      });
-    }
-
-    // Verify payment
-    const verification = await verifyPaymentFromRequest(req);
-    if (!verification.valid) {
-      return res.status(402).json({
-        error: verification.error,
-        message: 'Payment verification failed'
-      });
-    }
-
     res.json(await goHome(req.body.lens));
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

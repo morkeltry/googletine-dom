@@ -8,6 +8,7 @@
 import { EventEmitter } from 'events';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { readFileSync } from 'fs';
 import * as glm from './glm.js';
 import * as activityLogger from '../logs/activity-logger.js';
 
@@ -20,15 +21,24 @@ const LENS_META = {
   cat: { id: 'cat', name: 'Cat Lover', emoji: '🐱' },
 };
 
+// the agent's on-chain wallet (public addresses + chain config); keys live in env
+let WALLET = null;
+try { WALLET = JSON.parse(readFileSync(join(__dirname, '..', 'payments', 'wallets.json'), 'utf8')); } catch {}
+const EXPLORER = (WALLET && WALLET.explorer) || 'https://explore.testnet.tempo.xyz';
+// real per-view payments are on only when the backend holds a funded key + signing secret
+export const PAYMENTS_LIVE = Boolean(process.env.ALGOMATE_AGENT_KEY && process.env.MPP_SECRET_KEY);
+
+const money = (n) => Math.round((Number(n) || 0) * 1e6) / 1e6; // pathUSD: 6 decimals
+export const PRICE_PER_VIEW = money(process.env.ALGOMATE_PRICE_PER_VIEW || (WALLET && WALLET.pricePerView) || 0.001);
+
 const state = {
   user: 'frank',
   activeLens: 'dev',
   paused: false,
-  budget: { total: 2.0, spent: 0, currency: 'EUR' },
-  decisions: [], // { id, ts, phase, message, lens?, amount? }
+  budget: { total: 5.0, spent: 0, currency: 'pathUSD' },
+  paidViews: 0,
+  decisions: [], // { id, ts, phase, message, lens?, amount?, tx?, txUrl? }
 };
-
-const money = (n) => Math.round((Number(n) || 0) * 100) / 100;
 
 function record(entry) {
   const e = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, ts: Date.now(), phase: 'NARRATE', message: '', ...entry };
@@ -48,6 +58,18 @@ function publicState() {
     lenses: Object.values(LENS_META),
     decisions: state.decisions.slice(-60),
     agent: { model: glm.model(), hasKey: glm.hasKey() },
+    paidViews: state.paidViews,
+    wallet: walletInfo(),
+  };
+}
+
+function walletInfo() {
+  if (!WALLET) return null;
+  return {
+    address: WALLET.agent, seller: WALLET.seller,
+    network: WALLET.testnet === false ? 'Tempo' : 'Tempo testnet',
+    token: 'pathUSD', explorer: EXPLORER,
+    pricePerView: PRICE_PER_VIEW, live: PAYMENTS_LIVE,
   };
 }
 
@@ -74,6 +96,27 @@ export function approvePayment(amount) {
   return { ok: true, remaining: money(state.budget.total - state.budget.spent) };
 }
 
+const fmtPay = (n) => { const s = Number(n).toFixed(6).replace(/0+$/, '').replace(/\.$/, ''); return s === '' || s === '-0' ? '0' : s; };
+
+// A real per-view micro-payment the agent just made on the human's behalf.
+// Carries the on-chain tx reference so the console can link it. Called by the
+// server after each watched video settles (or with ok:false if it didn't).
+export function recordPayment({ amount = PRICE_PER_VIEW, videoId, title, tx, ok = true } = {}) {
+  const amt = money(amount);
+  const label = `“${String(title || videoId || 'a video').slice(0, 42)}”`;
+  if (!ok) {
+    return record({ phase: 'ACT', message: `View fee for ${label} didn’t settle — I’ll retry`, amount: amt, videoId, declined: true });
+  }
+  state.budget.spent = money(state.budget.spent + amt);
+  state.paidViews += 1;
+  return record({
+    phase: 'ACT',
+    message: `Paid ${fmtPay(amt)} pathUSD for ${label}`,
+    amount: amt, videoId, tx: tx || null,
+    txUrl: tx ? `${EXPLORER}/tx/${tx}` : null,
+  });
+}
+
 export function getState() { return publicState(); }
 
 // ---- the GLM decision loop (step 2) ----
@@ -89,23 +132,25 @@ How to read it:
  • Before 16:00 (they're working) -> keep the "dev" (Developer) lens.
  • From 16:00 onward, and late at night -> switch to the "cat" (Cat Lover) lens for calming cat videos.
  • Also glance at their recent activity; if they're clearly off-context, gently nudge — don't nag.
- • Pay the small per-view fee (about EUR 0.03) on their behalf, within budget.
+
+Payments — you handle these automatically, the human never does:
+ • Every time they watch a video, that's one use of the chosen algorithm. You pay the
+   tiny per-view fee (~0.001 pathUSD) to the algorithm's seller — a REAL micro-payment
+   settled on the Tempo blockchain, from your own wallet, in the background.
+ • The human just watches; you take care of the money so they never stop to pay.
 
 Rules:
  • The human is in charge. Nudge, don't hijack. Keep actions minimal — doing nothing is valid.
  • If the active lens already fits, do NOT switch; just narrate briefly.
  • After acting, always call narrate() once with a short, warm sentence.
- • Never spend beyond the remaining budget.
 
-Use your tools: set_lens, approve_payment, narrate.`;
+Use your tools: set_lens, narrate.`;
 
 const TOOLS = [
   { type: 'function', function: { name: 'set_lens', description: 'Switch the human active feed lens.',
     parameters: { type: 'object', properties: {
       lens: { type: 'string', enum: ['dev', 'cat'], description: 'dev = Developer, cat = Cat Lover' },
       reason: { type: 'string', description: 'short, warm explanation shown to the human' } }, required: ['lens'] } } },
-  { type: 'function', function: { name: 'approve_payment', description: 'Approve a micro-payment (EUR) for the feed, within budget.',
-    parameters: { type: 'object', properties: { amount: { type: 'number', description: 'EUR amount, e.g. 0.03' } }, required: ['amount'] } } },
   { type: 'function', function: { name: 'narrate', description: 'Post one short warm sentence to the human about what you are doing.',
     parameters: { type: 'object', properties: { message: { type: 'string' } }, required: ['message'] } } },
 ];
@@ -137,8 +182,7 @@ export function ruleTick() {
   sense(relax ? `It's ${h}:00 — after work, wind-down time.` : `It's ${h}:00 — work hours, focus time.`);
   decide(relax ? 'Past 16:00 → switch to calming cat videos.' : 'Before 16:00 → keep the Developer feed.');
   setLens(target, relax ? 'Past 16:00 — switching you to calming cats.' : 'Work hours — keeping you on the Developer feed.');
-  approvePayment(0.03);
-  narrate(relax ? 'Clocking off — enjoy the cats.' : 'In flow — I’ll stay out of your way.');
+  narrate(relax ? 'Clocking off — enjoy the cats. I’ll cover the view fees.' : 'In flow — I’ll stay out of your way and handle the payments.');
   return publicState();
 }
 
@@ -167,7 +211,6 @@ export async function runTick() {
         let result = 'ok';
         try {
           if (fn === 'set_lens') setLens(args.lens, args.reason);
-          else if (fn === 'approve_payment') result = JSON.stringify(approvePayment(args.amount));
           else if (fn === 'narrate') narrate(args.message);
           else result = 'unknown tool';
         } catch (e) { result = 'error: ' + e.message; }
@@ -186,7 +229,7 @@ export function mountAgent(app) {
   app.get('/api/agent/state', (req, res) => res.json(publicState()));
 
   // the agent's brief — plain-language instruction + the actual system prompt (for the console)
-  app.get('/api/agent/brief', (req, res) => res.json({ instruction: INSTRUCTION, system: SYSTEM, model: glm.model(), hasKey: glm.hasKey() }));
+  app.get('/api/agent/brief', (req, res) => res.json({ instruction: INSTRUCTION, system: SYSTEM, model: glm.model(), hasKey: glm.hasKey(), wallet: walletInfo(), paymentsLive: PAYMENTS_LIVE }));
 
   app.post('/api/agent/lens', (req, res) => {
     try { setLens((req.body || {}).lens, (req.body || {}).reason || 'Manual override by you'); res.json(publicState()); }
@@ -201,7 +244,7 @@ export function mountAgent(app) {
 
   app.post('/api/agent/budget', (req, res) => {
     const total = Number(req.body && req.body.total);
-    if (total > 0) { state.budget.total = money(total); record({ phase: 'NARRATE', message: `Budget set to €${state.budget.total.toFixed(2)}.` }); }
+    if (total > 0) { state.budget.total = money(total); record({ phase: 'NARRATE', message: `Budget set to ${state.budget.total} pathUSD.` }); }
     res.json(publicState());
   });
 

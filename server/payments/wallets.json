@@ -1,0 +1,12 @@
+{
+  "_note": "AlgoMate payment wallets — public addresses only. Keys live in .env (gitignored).",
+  "chainId": 42431,
+  "rpc": "https://rpc.moderato.tempo.xyz",
+  "explorer": "https://explore.testnet.tempo.xyz",
+  "token": "0x20c0000000000000000000000000000000000000",
+  "decimals": 6,
+  "testnet": true,
+  "pricePerView": "0.001",
+  "agent": "0x739A78A044dDd5E4E62083ea3B42cBcD203A4707",
+  "seller": "0x19079e1eF0C79727c62AE14b76cFB6681AAC37FE"
+}
