@@ -77,18 +77,23 @@ export function approvePayment(amount) {
 export function getState() { return publicState(); }
 
 // ---- the GLM decision loop (step 2) ----
-const SYSTEM = `You are AlgoMate, a personal feed agent. You look after one human's YouTube
-experience so they don't have to manage it.
+// The human's plain-language instruction to the agent (shown on the console).
+export const INSTRUCTION = `I'm a developer. While I'm working, only show me developer videos. After 16:00, switch me to some calming cat videos.`;
 
-Your job:
- • Keep their feed suited to the moment. Work hours (~9-17) -> the "dev" (Developer) lens.
-   Evenings & weekends -> "cat" (Cat Lover, relaxation).
- • Watch their recent activity. If they're off-context, gently switch lenses — don't nag.
+export const SYSTEM = `You are AlgoMate, a personal feed agent. You look after ONE human and keep their YouTube feed in line with the standing instruction they gave you.
+
+Their instruction:
+"${INSTRUCTION}"
+
+How to read it:
+ • Before 16:00 (they're working) -> keep the "dev" (Developer) lens.
+ • From 16:00 onward, and late at night -> switch to the "cat" (Cat Lover) lens for calming cat videos.
+ • Also glance at their recent activity; if they're clearly off-context, gently nudge — don't nag.
  • Pay the small per-view fee (about EUR 0.03) on their behalf, within budget.
 
 Rules:
  • The human is in charge. Nudge, don't hijack. Keep actions minimal — doing nothing is valid.
- • If the active lens already fits the moment, do NOT switch; just narrate briefly.
+ • If the active lens already fits, do NOT switch; just narrate briefly.
  • After acting, always call narrate() once with a short, warm sentence.
  • Never spend beyond the remaining budget.
 
@@ -108,7 +113,7 @@ const TOOLS = [
 function buildContext() {
   const now = new Date();
   const h = now.getHours();
-  const dayPart = (h >= 18 || h < 6) ? 'evening / wind-down' : (h >= 9 && h < 17 ? 'work hours' : 'off-peak');
+  const dayPart = (h >= 16 || h < 6) ? 'after 16:00 / wind-down' : 'work hours (before 16:00)';
   const recentActivity = [];
   for (const u of ['user-dev', 'user-cat']) {
     try { (activityLogger.getRecentActivity(u, 4) || []).forEach((a) => recentActivity.push({ user: u, ...a })); } catch {}
@@ -127,13 +132,13 @@ const safeParse = (s) => { try { return JSON.parse(s || '{}'); } catch { return 
 export function ruleTick() {
   if (state.paused) { narrate('Asked to act, but I’m paused — you’re in control.'); return publicState(); }
   const h = new Date().getHours();
-  const evening = h >= 18 || h < 6;
-  const target = evening ? 'cat' : 'dev';
-  sense(evening ? `Evening (${h}:00) — winding-down hours.` : `Work hours (${h}:00) — focus time.`);
-  decide(evening ? 'Time to relax → switch to Cat Lover.' : 'Keep you productive → stay on Developer.');
-  setLens(target, evening ? 'Switched you to cats for the evening. 🐱' : 'Keeping you on the Developer feed.');
+  const relax = h >= 16 || h < 6;
+  const target = relax ? 'cat' : 'dev';
+  sense(relax ? `It's ${h}:00 — after work, wind-down time.` : `It's ${h}:00 — work hours, focus time.`);
+  decide(relax ? 'Past 16:00 → switch to calming cat videos.' : 'Before 16:00 → keep the Developer feed.');
+  setLens(target, relax ? 'Past 16:00 — switching you to calming cats.' : 'Work hours — keeping you on the Developer feed.');
   approvePayment(0.03);
-  narrate(evening ? 'You’ve earned it — enjoy. 🐱' : 'In flow — I’ll stay out of your way.');
+  narrate(relax ? 'Clocking off — enjoy the cats.' : 'In flow — I’ll stay out of your way.');
   return publicState();
 }
 
@@ -179,6 +184,9 @@ export async function runTick() {
 // ---- routes ----
 export function mountAgent(app) {
   app.get('/api/agent/state', (req, res) => res.json(publicState()));
+
+  // the agent's brief — plain-language instruction + the actual system prompt (for the console)
+  app.get('/api/agent/brief', (req, res) => res.json({ instruction: INSTRUCTION, system: SYSTEM, model: glm.model(), hasKey: glm.hasKey() }));
 
   app.post('/api/agent/lens', (req, res) => {
     try { setLens((req.body || {}).lens, (req.body || {}).reason || 'Manual override by you'); res.json(publicState()); }

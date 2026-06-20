@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AlgoMate — Agent Console</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 18 11.4 7'/%3E%3Cpath d='M18 18 12.6 7'/%3E%3Cpath d='M8.3 14h7.4'/%3E%3C/g%3E%3Ccircle cx='12' cy='5.2' r='1.6' fill='%23fff'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
@@ -23,9 +24,20 @@
   .glyph{width:27px;height:27px;border-radius:7px;background:var(--ink);display:grid;place-items:center;color:var(--bg);}
   .glyph .ic{width:15px;height:15px;}
   .brand b{font-weight:700;font-size:17px;letter-spacing:-.03em;}
-  .live{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--ink-3);}
-  .live .dot{width:7px;height:7px;border-radius:50%;background:var(--line-2);}
-  .live.on .dot{background:var(--ink);}
+  .live{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:500;color:var(--ink-3);line-height:1;white-space:nowrap;}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:var(--line-2);}
+  .live.on .dot{background:var(--ink);box-shadow:0 0 0 0 rgba(10,10,10,.3);animation:livepulse 2.2s ease-out infinite;}
+  @keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(10,10,10,.32)}70%{box-shadow:0 0 0 6px rgba(10,10,10,0)}100%{box-shadow:0 0 0 0 rgba(10,10,10,0)}}
+
+  /* the brief — instruction + system prompt */
+  .brief{margin-top:26px;}
+  .bgrid{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
+  @media (max-width:720px){.bgrid{grid-template-columns:1fr;}}
+  .blabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3);margin-bottom:11px;display:flex;align-items:center;gap:9px;}
+  .bmodel{font-size:10.5px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:999px;padding:2px 9px;text-transform:none;letter-spacing:0;font-weight:500;}
+  .instruction{font-size:21px;line-height:1.36;font-weight:500;color:var(--ink);letter-spacing:-.015em;text-wrap:pretty;}
+  .instruction::before{content:"“";color:var(--line-2);} .instruction::after{content:"”";color:var(--line-2);}
+  .systxt{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-size:12px;line-height:1.6;color:var(--ink-2);background:#f7f7f7;border:1px solid var(--line);border-radius:12px;padding:14px 16px;white-space:pre-wrap;max-height:230px;overflow:auto;}
   .eyebrow{font-size:13px;font-weight:600;color:var(--ink-3);}
   h1{font-size:clamp(32px,5.5vw,52px);font-weight:800;letter-spacing:-.035em;line-height:.98;margin:9px 0 0;text-wrap:balance;}
   h1 em{font-style:normal;text-decoration:underline;text-decoration-thickness:.08em;text-underline-offset:.08em;}
@@ -96,6 +108,19 @@
     <p class="sub enter d1">AlgoMate looks after your feed and pays the pennies. Everything it does shows up here — live, and reversible.</p>
   </header>
 
+  <div class="brief enter d1">
+    <div class="bgrid">
+      <div>
+        <div class="blabel">The human's instruction</div>
+        <blockquote class="instruction" id="instruction">loading…</blockquote>
+      </div>
+      <div>
+        <div class="blabel">System prompt <span class="bmodel" id="bModel"></span></div>
+        <pre class="systxt" id="systxt">loading…</pre>
+      </div>
+    </div>
+  </div>
+
   <div class="panel enter d1" id="panel">
     <div class="row">
       <div class="lenschip">
@@ -126,7 +151,7 @@
 
 <script>
 const IC = {
-  bolt:  '<svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4.5 13.2A1 1 0 0 0 5.3 14.8H11l-1 7.2 8.5-11.2a1 1 0 0 0-.8-1.6H12l1-6.4Z"/></svg>',
+  logo:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 19 11.4 6.6"/><path d="M18.5 19 12.6 6.6"/><path d="M8 14.3h8"/><circle cx="12" cy="4.8" r="1.7" fill="currentColor" stroke="none"/></svg>',
   code:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
   cat:   '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17z"/></svg>',
   lens:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg>',
@@ -142,9 +167,16 @@ const fmtTime = ts => { const d = new Date(ts); return d.toLocaleTimeString([], 
 const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
 // static icons
-$('gBrand').innerHTML = IC.bolt;
+$('gBrand').innerHTML = IC.logo;
 $('simBtn').innerHTML = IC.spark + ' Let the agent decide';
 document.querySelectorAll('.btn.lens').forEach(b => b.querySelector('.bi').innerHTML = LENS_ICON[b.dataset.lens] || IC.lens);
+
+// the brief: show the human's instruction + the actual system prompt
+fetch('/api/agent/brief').then(r => r.json()).then(b => {
+  $('instruction').textContent = b.instruction || '';
+  $('systxt').textContent = b.system || '';
+  $('bModel').textContent = b.hasKey ? b.model : 'rule-based';
+}).catch(() => {});
 
 let snap = null;
 

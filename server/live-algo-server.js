@@ -15,8 +15,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.GOOGLETINE_SERVER_PORT || process.env.LIVE_PORT || 7070;
 
 const LENSES = {
-  dev: { id: 'dev', name: 'Developer', emoji: '👨‍💻', when: 'the 9-to-5 you', seed: 'fireship programming' },
-  cat: { id: 'cat', name: 'Cat Lover', emoji: '🐱', when: 'the after-dark you', seed: 'funny cats compilation' },
+  dev: { id: 'dev', name: 'Developer', emoji: '👨‍💻', when: 'the 9-to-5 you',
+    seed: 'fireship',
+    seeds: ['fireship', 'theprimeagen', 'web dev simplified', 'theo t3 gg', 'low level learning', 'continuous delivery dave farley', 'coding tech talks'] },
+  cat: { id: 'cat', name: 'Cat Lover', emoji: '🐱', when: 'the after-dark you',
+    seed: 'funny cats compilation',
+    seeds: ['funny cats compilation', 'cute kittens'] },
 };
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36';
@@ -127,17 +131,25 @@ async function initSession(lensId) {
   const s = { page, feed: [], context: 'starting…', watched: [], events: [], lock: Promise.resolve() };
   sessions.set(lensId, s);
 
-  console.log(`[live:${lensId}] init — seeding with "${lens.seed}"`);
+  const seeds = (lens.seeds && lens.seeds.length) ? lens.seeds : [lens.seed];
+  console.log(`[live:${lensId}] init — seeding ${seeds.length} persona(s)`);
   await page.goto('https://www.youtube.com', { waitUntil: 'domcontentloaded', timeout: 35000 });
   await dismissConsent(page);
-  // seed the session with a representative search so there's an initial feed
-  await page.goto(`https://www.youtube.com/results?search_query=${encodeURIComponent(lens.seed)}`, { waitUntil: 'domcontentloaded', timeout: 35000 });
-  try { await page.waitForSelector('ytd-video-renderer', { timeout: 12000 }); } catch {}
-  await delay(700);
-  s.feed = await extractVideos(page, 16);
-  s.context = `seed search · "${lens.seed}"`;
-  s.events.push({ type: 'seed', label: lens.seed, videos: s.feed });
-  console.log(`[live:${lensId}] ready — ${s.feed.length} videos`);
+  // seed the session with each persona; the opening feed is a blend of them all
+  for (const q of seeds) {
+    try {
+      await page.goto(`https://www.youtube.com/results?search_query=${encodeURIComponent(q)}`, { waitUntil: 'domcontentloaded', timeout: 35000 });
+      await page.evaluate(NUKE);
+      try { await page.waitForSelector('ytd-video-renderer', { timeout: 12000 }); } catch {}
+      await delay(400);
+      const vids = await extractVideos(page, 16);
+      if (vids.length) s.events.push({ type: 'seed', label: q, videos: vids });
+      console.log(`[live:${lensId}] seeded "${q}" — ${vids.length} videos`);
+    } catch (e) { console.error(`[live:${lensId}] seed "${q}" failed: ${e.message}`); }
+  }
+  s.feed = blendedHome(s, 18);
+  s.context = `${lens.name} feed`;
+  console.log(`[live:${lensId}] ready — ${s.feed.length} videos from ${s.events.length} personas`);
   return s;
 }
 
