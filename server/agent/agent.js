@@ -2,8 +2,8 @@
 //
 // Holds the agent's state in memory (active lens, budget, decision log) and exposes
 // it over a small REST + SSE API for the /agent console. The action functions
-// (setLens / approvePayment / narrate / sense / decide) are what the GLM loop will
-// call as tools in step 2.
+// (setLens / narrate / sense / decide) are the GLM tools; recordPayment logs the
+// real per-view payments the agent makes.
 
 import { EventEmitter } from 'events';
 import { fileURLToPath } from 'url';
@@ -85,27 +85,25 @@ export function setLens(lens, reason) {
   return record({ phase: 'ACT', message: reason || (changed ? `Switched you to ${LENS_META[lens].name}` : `Kept you on ${LENS_META[lens].name}`), lens });
 }
 
-export function approvePayment(amount) {
-  const amt = money(amount);
-  if (state.budget.spent + amt > state.budget.total) {
-    record({ phase: 'ACT', message: `Declined €${amt.toFixed(2)} — budget reached`, amount: amt, declined: true });
-    return { ok: false, reason: 'budget exceeded', remaining: money(state.budget.total - state.budget.spent) };
-  }
-  state.budget.spent = money(state.budget.spent + amt);
-  record({ phase: 'ACT', message: `Paid €${amt.toFixed(2)} via MPP`, amount: amt });
-  return { ok: true, remaining: money(state.budget.total - state.budget.spent) };
-}
-
 const fmtPay = (n) => { const s = Number(n).toFixed(6).replace(/0+$/, '').replace(/\.$/, ''); return s === '' || s === '-0' ? '0' : s; };
+
+// Would one more payment of `amount` stay within the session budget? Checked
+// BEFORE the on-chain charge is signed, so the cap actually holds.
+export function canSpend(amount = PRICE_PER_VIEW) {
+  return money(state.budget.spent + money(amount)) <= state.budget.total;
+}
 
 // A real per-view micro-payment the agent just made on the human's behalf.
 // Carries the on-chain tx reference so the console can link it. Called by the
-// server after each watched video settles (or with ok:false if it didn't).
-export function recordPayment({ amount = PRICE_PER_VIEW, videoId, title, tx, ok = true } = {}) {
+// server after each watched video settles (reason: 'budget' if it was capped).
+export function recordPayment({ amount = PRICE_PER_VIEW, videoId, title, tx, ok = true, reason } = {}) {
   const amt = money(amount);
   const label = `“${String(title || videoId || 'a video').slice(0, 42)}”`;
   if (!ok) {
-    return record({ phase: 'ACT', message: `View fee for ${label} didn’t settle — I’ll retry`, amount: amt, videoId, declined: true });
+    const msg = reason === 'budget'
+      ? `Budget reached — holding off on the view fee for ${label}`
+      : `View fee for ${label} didn’t settle — I’ll retry`;
+    return record({ phase: 'ACT', message: msg, amount: amt, videoId, declined: true });
   }
   state.budget.spent = money(state.budget.spent + amt);
   state.paidViews += 1;

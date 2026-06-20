@@ -70,7 +70,16 @@ export async function viewCharge(req, res, next) {
 
 // The agent pays one view fee, in the background, and returns the receipt.
 // baseUrl is the server's own origin (the agent buys from our own 402 gate).
-export async function payForView(baseUrl, { videoId, title } = {}) {
+// Payments are serialized: concurrent watches share one wallet, so overlapping
+// signs would collide on the account nonce. We chain them one at a time.
+let payChain = Promise.resolve();
+export function payForView(baseUrl, opts = {}) {
+  const run = payChain.then(() => _payForView(baseUrl, opts), () => _payForView(baseUrl, opts));
+  payChain = run.catch(() => {});
+  return run;
+}
+
+async function _payForView(baseUrl, { videoId, title } = {}) {
   await ready;
   if (!_payFetch) return { ok: false, simulated: true, error: initError && initError.message };
   const url = `${baseUrl}/api/algo/view?v=${encodeURIComponent(videoId || '')}`;

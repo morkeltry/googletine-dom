@@ -10,7 +10,7 @@ import { dirname, join } from 'path';
 import * as activityLogger from './logs/activity-logger.js';
 import * as mppServer from '../shared/payments/mpp-server.js';
 import * as mppClient from '../shared/payments/mpp-client.js';
-import { mountAgent, recordPayment } from './agent/agent.js';
+import { mountAgent, recordPayment, canSpend, PRICE_PER_VIEW } from './agent/agent.js';
 import { viewCharge, payForView } from './payments/mpp.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -299,14 +299,32 @@ app.post('/api/search', async (req, res) => {
 
 app.post('/api/watch', async (req, res) => {
   try {
-    const result = await doWatch(req.body.lens, req.body.videoId, req.body.title);
+    const { lens, videoId, title } = req.body;
+    const result = await doWatch(lens, videoId, title);
     res.json(result);
-    // The agent pays the per-view algorithm fee in the background (real Tempo micro-tx).
-    // The human already has their feed — they never wait on the payment.
-    const selfBase = `http://127.0.0.1:${PORT}`;
-    payForView(selfBase, { videoId: req.body.videoId, title: req.body.title })
-      .then((p) => recordPayment({ videoId: req.body.videoId, title: req.body.title, tx: p.tx, ok: p.ok && !!p.tx }))
-      .catch(() => recordPayment({ videoId: req.body.videoId, title: req.body.title, ok: false }));
+    // The agent pays the per-view fee in the background (real Tempo micro-tx) — the human
+    // already has their feed and never waits. Pay at most ONCE per video per session, and
+    // only while within budget. The budget gate runs BEFORE the charge so the cap holds;
+    // a settled tx can't be undone, so checking after would be too late.
+    const s = sessions.get(lens);
+    if (s && videoId) {
+      if (!s.paidVideoIds) s.paidVideoIds = new Set();
+      if (s.paidVideoIds.has(videoId)) {
+        /* already paid this session — nothing to do */
+      } else if (!canSpend(PRICE_PER_VIEW)) {
+        recordPayment({ videoId, title, ok: false, reason: 'budget' });
+      } else {
+        s.paidVideoIds.add(videoId); // reserve so concurrent watches don't double-charge
+        const selfBase = `http://127.0.0.1:${PORT}`;
+        payForView(selfBase, { videoId, title })
+          .then((p) => {
+            if (p.simulated) { s.paidVideoIds.delete(videoId); return; } // payments not configured
+            if (p.ok && p.tx) recordPayment({ videoId, title, tx: p.tx, ok: true });
+            else { s.paidVideoIds.delete(videoId); recordPayment({ videoId, title, ok: false }); }
+          })
+          .catch(() => { s.paidVideoIds.delete(videoId); recordPayment({ videoId, title, ok: false }); });
+      }
+    }
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
