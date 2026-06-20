@@ -7,7 +7,7 @@ import forwardRequest from './forwardRequest.js';
 import { constants } from '../constants.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import * as auth from '../../shared/payments/authorization.js';
+import * as auth from '../../../shared/payments/authorization.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
