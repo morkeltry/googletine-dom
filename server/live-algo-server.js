@@ -432,6 +432,77 @@ app.get('/request', async (req, res) => {
   }
 });
 
+// POST endpoint for /request (for payment retry from client)
+app.post('/request', async (req, res) => {
+  try {
+    const { url } = req.body;
+    if (!url) return res.status(400).send('URL parameter required');
+
+    console.log(`[request POST] Page request for: ${url}`);
+
+    // Check for valid payment
+    if (!hasValidPayment(req)) {
+      // Payment required - return 402
+      const sessionId = getSessionId(req);
+      const paymentReq = mppServer.requiresPayment('/request', sessionId);
+
+      res.status(402);
+      res.setHeader('X-Payment-Required', JSON.stringify(paymentReq));
+      res.setHeader('Content-Type', 'text/html');
+
+      // Generate simple 402 page
+      const html402 = `<!DOCTYPE html>
+<html>
+<head><title>402 Payment Required</title></head>
+<body>
+  <h1>402 Payment Required</h1>
+  <p>Payment of ${paymentReq.amount} ${paymentReq.currency} required</p>
+  <p>Session: ${paymentReq.sessionId}</p>
+  <p>Include payment details in X-Payment header and retry.</p>
+</body>
+</html>`;
+      return res.send(html402);
+    }
+
+    // Verify payment
+    const verification = await verifyPaymentFromRequest(req);
+    if (!verification.valid) {
+      res.status(402);
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(`<!DOCTYPE html><html><head><title>402 Payment Invalid</title></head><body><h1>402 Payment Invalid</h1><p>${verification.error}</p></body></html>`);
+    }
+
+    // Payment valid - render the page using Puppeteer
+    console.log(`[request POST] Payment valid, rendering: ${url}`);
+
+    const b = await getBrowser();
+    const page = await b.newPage();
+
+    try {
+      await page.setUserAgent(UA);
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 35000 });
+      await delay(700); // Let JS execute
+
+      // Remove consent overlays
+      await page.evaluate(NUKE);
+
+      // Get the rendered HTML
+      const html = await page.content();
+
+      res.setHeader('Content-Type', 'text/html');
+      res.send(html);
+
+      console.log(`[request POST] ✓ Rendered ${html.length} bytes`);
+    } finally {
+      await page.close();
+    }
+
+  } catch (e) {
+    console.error('[request POST] Error:', e.message);
+    res.status(500).send(`Error: ${e.message}`);
+  }
+});
+
 // Activity endpoints
 app.get('/activity/:userId', (req, res) => {
   const { userId } = req.params;
