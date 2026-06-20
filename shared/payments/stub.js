@@ -1,59 +1,100 @@
-// Payment stub functions ready for MPP integration
+// Payment functions using MPP integration
 // Toggle PAYMENT_ENABLED to test payment flow vs bypass
+
+import * as mppServer from './mpp-server.js';
+import * as mppClient from './mpp-client.js';
 
 const PAYMENT_ENABLED = true;
 
-// Simple price calculation based on URL length (placeholder)
-// TODO: Implement proper pricing logic
+// Price calculation - now uses MPP server pricing
 const calculatePrice = (url) => {
-	// Base price + URL length factor
-	return 1000 + (url.length * 10);
+	return mppServer.calculatePrice(url);
 };
 
-// Client-side: Execute payment when server requests it
-export const doPayment = async (paymentRequest) => {
+// Client-side: Execute payment using MPP client
+export const doPayment = async (paymentRequest, userId = 'default-user') => {
 	if (!PAYMENT_ENABLED) return { success: true, transactionId: 'bypassed' };
 
 	console.log('PAYMENT REQUEST:', paymentRequest);
 
-	// TODO: Integrate MPP here
-	// For now, always succeeds
-	return {
-		success: true,
-		transactionId: `stub-tx-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-		amount: paymentRequest.amount
-	};
+	try {
+		// Check authorization
+		const authCheck = mppClient.checkAuthorization(userId, paymentRequest.amount);
+
+		if (!authCheck.authorized) {
+			return {
+				success: false,
+				error: authCheck.message,
+				reason: authCheck.reason,
+				needsAuthorization: true
+			};
+		}
+
+		// Execute payment through MPP client
+		const result = await mppClient.executePayment(paymentRequest, userId);
+
+		return {
+			success: true,
+			transactionId: result.payment.transactionId,
+			amount: result.payment.amount,
+			signature: result.payment.signature,
+			sessionId: result.payment.sessionId,
+			authorization: result.authorization
+		};
+	} catch (error) {
+		console.error('PAYMENT ERROR:', error.message);
+		return {
+			success: false,
+			error: error.message
+		};
+	}
 };
 
-// Server-side: Validate payment received from client
+// Server-side: Validate payment using MPP server
 export const receivePayment = async (payment) => {
 	if (!PAYMENT_ENABLED) return { valid: true, amount: 0 };
 
 	console.log('PAYMENT RECEIVED:', payment);
 
-	// TODO: Integrate MPP validation here
-	// For now, validate basic structure
-	if (!payment || !payment.transactionId || !payment.success) {
-		return { valid: false, error: 'Invalid payment structure' };
-	}
+	try {
+		// Verify payment through MPP server
+		const verification = mppServer.verifyPayment(payment);
 
-	// Stub: always valid if structure is correct
-	return {
-		valid: true,
-		amount: payment.amount || 0,
-		transactionId: payment.transactionId
-	};
+		if (!verification.valid) {
+			return {
+				valid: false,
+				error: verification.error
+			};
+		}
+
+		return {
+			valid: true,
+			amount: verification.amount,
+			transactionId: verification.transactionId,
+			session: verification.session
+		};
+	} catch (error) {
+		console.error('PAYMENT VALIDATION ERROR:', error.message);
+		return {
+			valid: false,
+			error: error.message
+		};
+	}
 };
 
-// Server-side: Generate payment request to send to client
+// Server-side: Generate payment request using MPP server
 export const requestPayment = (url, sessionId) => {
-	const amount = calculatePrice(url);
+	const paymentDecision = mppServer.requiresPayment(url, sessionId);
+
 	return {
-		amount,
-		sessionId,
+		amount: paymentDecision.amount,
+		sessionId: paymentDecision.sessionId,
 		timestamp: Date.now(),
-		currency: 'MPP' // Placeholder for MPP currency
+		currency: paymentDecision.currency,
+		intent: paymentDecision.intent,
+		session: paymentDecision.session
 	};
 };
 
 export { calculatePrice };
+export { PAYMENT_ENABLED };

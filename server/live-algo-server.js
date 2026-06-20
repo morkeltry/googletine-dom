@@ -7,6 +7,8 @@ import puppeteer from 'puppeteer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import * as activityLogger from './logs/activity-logger.js';
+import * as mppServer from '../shared/payments/mpp-server.js';
+import * as mppClient from '../shared/payments/mpp-client.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.GOOGLETINE_SERVER_PORT || process.env.LIVE_PORT || 7070;
@@ -202,6 +204,52 @@ async function goHome(lensId) {
   });
 }
 
+// ---- Payment Functions ----
+
+/**
+ * Generate session ID from request
+ */
+function getSessionId(req) {
+  const authHeader = req.headers['x-session-id'] || req.headers['authorization'];
+  if (authHeader) {
+    return authHeader.replace(/^Bearer /i, '').replace(/Session:/i, '');
+  }
+  // Generate session ID from IP and timestamp
+  return `sess_${req.ip}_${Date.now()}`;
+}
+
+/**
+ * Check if request has valid payment
+ */
+function hasValidPayment(req) {
+  const paymentHeader = req.headers['x-payment'];
+  if (!paymentHeader) return false;
+
+  try {
+    const payment = JSON.parse(paymentHeader);
+    return payment && payment.transactionId && payment.signature;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Verify payment from request headers
+ */
+async function verifyPaymentFromRequest(req) {
+  const paymentHeader = req.headers['x-payment'];
+  if (!paymentHeader) {
+    return { valid: false, error: 'No payment header' };
+  }
+
+  try {
+    const payment = JSON.parse(paymentHeader);
+    return await mppServer.verifyPayment(payment);
+  } catch (error) {
+    return { valid: false, error: error.message };
+  }
+}
+
 // ---- HTTP API ----
 const app = express();
 app.use(express.json());
@@ -217,18 +265,84 @@ app.get('/api/feed', async (req, res) => {
 });
 
 app.post('/api/search', async (req, res) => {
-  try { res.json(await doSearch(req.body.lens, req.body.query)); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    const sessionId = getSessionId(req);
+
+    // Check for valid payment
+    if (!hasValidPayment(req)) {
+      // Payment required - return 402
+      const paymentReq = mppServer.requiresPayment('/api/search', sessionId);
+      return res.status(402).json({
+        payment: paymentReq,
+        message: 'Payment required for search'
+      });
+    }
+
+    // Verify payment
+    const verification = await verifyPaymentFromRequest(req);
+    if (!verification.valid) {
+      return res.status(402).json({
+        error: verification.error,
+        message: 'Payment verification failed'
+      });
+    }
+
+    res.json(await doSearch(req.body.lens, req.body.query));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/watch', async (req, res) => {
-  try { res.json(await doWatch(req.body.lens, req.body.videoId, req.body.title)); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    const sessionId = getSessionId(req);
+
+    // Check for valid payment
+    if (!hasValidPayment(req)) {
+      // Payment required - return 402
+      const paymentReq = mppServer.requiresPayment('/api/watch', sessionId);
+      return res.status(402).json({
+        payment: paymentReq,
+        message: 'Payment required for watch'
+      });
+    }
+
+    // Verify payment
+    const verification = await verifyPaymentFromRequest(req);
+    if (!verification.valid) {
+      return res.status(402).json({
+        error: verification.error,
+        message: 'Payment verification failed'
+      });
+    }
+
+    res.json(await doWatch(req.body.lens, req.body.videoId, req.body.title));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 app.post('/api/home', async (req, res) => {
-  try { res.json(await goHome(req.body.lens)); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    const sessionId = getSessionId(req);
+
+    // Check for valid payment
+    if (!hasValidPayment(req)) {
+      // Payment required - return 402
+      const paymentReq = mppServer.requiresPayment('/api/home', sessionId);
+      return res.status(402).json({
+        payment: paymentReq,
+        message: 'Payment required for home feed'
+      });
+    }
+
+    // Verify payment
+    const verification = await verifyPaymentFromRequest(req);
+    if (!verification.valid) {
+      return res.status(402).json({
+        error: verification.error,
+        message: 'Payment verification failed'
+      });
+    }
+
+    res.json(await goHome(req.body.lens));
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // Legacy proxy endpoint for client compatibility

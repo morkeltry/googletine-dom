@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorize Payment - Googletine</title>
+    <link rel="stylesheet" href="/payment/css/modal.css">
+</head>
+<body>
+    <div class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h1>🔐 Payment Authorization</h1>
+                <p class="subtitle">Authorize micropayments to continue using Googletine</p>
+            </div>
+
+            <div class="modal-body">
+                <!-- Payment Information -->
+                <div class="info-section">
+                    <h2>Payment Details</h2>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">Service:</span>
+                            <span class="value">Googletine - YouTube Algorithm Mirroring</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Per Page Cost:</span>
+                            <span class="value">$0.001 USDC</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Session Duration:</span>
+                            <span class="value">1 hour</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Max Single Payment:</span>
+                            <span class="value">$0.02 USDC</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Authorization Limits -->
+                <div class="info-section limits">
+                    <h2>Authorization Limits</h2>
+                    <div class="limits-info">
+                        <p>💰 You authorize an amount that will be automatically deducted as you use the service.</p>
+                        <p>⚡ <strong>No additional confirmations</strong> needed until your authorization is used up.</p>
+                        <p>🔒 <strong>Maximum per payment:</strong> $0.02 USDC</p>
+                    </div>
+                </div>
+
+                <!-- Authorization Amount Selection -->
+                <div class="info-section">
+                    <h2>Select Authorization Amount</h2>
+                    <div class="amount-options" id="amountOptions">
+                        <button class="amount-option" data-amount="1000000">
+                            <span class="amount">$1 USDC</span>
+                            <span class="pages">~1,000 pages</span>
+                        </button>
+                        <button class="amount-option recommended" data-amount="2000000">
+                            <span class="amount">$2 USDC</span>
+                            <span class="pages recommended-badge">Recommended</span>
+                            <span class="pages">~2,000 pages</span>
+                        </button>
+                        <button class="amount-option" data-amount="5000000">
+                            <span class="amount">$5 USDC</span>
+                            <span class="pages">~5,000 pages</span>
+                        </button>
+                        <button class="amount-option" data-amount="10000000">
+                            <span class="amount">$10 USDC</span>
+                            <span class="pages">~10,000 pages</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="statusMessages" class="status-section" style="display: none;">
+                    <div class="status-message info">
+                        <span class="status-icon">ℹ️</span>
+                        <span class="status-text">Processing your authorization...</span>
+                    </div>
+                </div>
+
+                <!-- Error Messages -->
+                <div id="errorMessages" class="error-section" style="display: none;">
+                    <div class="error-message">
+                        <span class="error-icon">⚠️</span>
+                        <span class="error-text" id="errorText"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn btn-cancel" id="cancelBtn">Cancel</button>
+                <button class="btn btn-authorize" id="authorizeBtn" disabled>
+                    <span class="btn-text">Authorize $1 USDC</span>
+                    <span class="btn-loader" style="display: none;">
+                        <span class="loader"></span>
+                    </span>
+                </button>
+            </div>
+
+            <div class="modal-note">
+                <p>🔒 Secure mock payment - No real money involved</p>
+                <p>Powered by <a href="https://mpp.dev" target="_blank">MPP - Machine Payments Protocol</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="/payment/js/authorize.js"></script>
+</body>
+</html>

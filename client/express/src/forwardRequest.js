@@ -5,11 +5,20 @@ import { doPayment } from '../../../shared/payments/stub.js';
 import { isPaymentRequired, parsePaymentRequestHeaders, createPaymentHeaders } from '../../../shared/payments/headers.js';
 import { loadYouTubePersonas, getNextYouTubePersona, isYouTubeUrl } from './personas.js';
 import { constants } from '../constants.js';
+import * as mppClient from '../../../shared/payments/mpp-client.js';
+import * as auth from '../../../shared/payments/authorization.js';
 
 const { googletineNodes } = constants;
 
 // Local parameters that should be stripped before proxying
 const LOCAL_PARAMS = ['persona', 'use_persona'];
+
+// Get or generate user ID from request
+function getUserId(req) {
+  // Check for user ID in header or cookie
+  const userId = req.get('X-User-Id') || req.get('Cookie')?.match(/userId=([^;]+)/)?.[1];
+  return userId || `user-${req.ip}-${Date.now()}`;
+}
 
 // Headers to strip from response (identifying headers)
 const STRIP_RESPONSE_HEADERS = ['etag', 'x-etag', 'if-match', 'if-none-match'];
@@ -191,12 +200,33 @@ const processRequest = async (url, clientResponse, req, useGet = false) => {
 
 			console.log('Payment request:', paymentRequest);
 
+			// Get user ID
+			const userId = getUserId(req);
+			console.log('Processing payment for user:', userId);
+
+			// Check authorization status
+			const authStatus = auth.getAuthorizationStatus(userId);
+			console.log('Authorization status:', authStatus);
+
+			// If no authorization or expired, redirect to authorization modal
+			if (!authStatus.hasAuthorization) {
+				console.log('No authorization - redirecting to payment modal');
+				return client.redirect(302, `/payment/auth?redirect=${encodeURIComponent(normalizedUrl)}&amount=${paymentRequest.amount}`);
+			}
+
 			// Execute payment
-			const paymentResult = await doPayment(paymentRequest);
+			const paymentResult = await doPayment(paymentRequest, userId);
 
 			if (!paymentResult.success) {
-				console.error('Payment failed');
-				clientResponse.status(402).send({ error: 'Payment failed' });
+				console.error('Payment failed:', paymentResult.error);
+
+				// Check if re-authorization is needed
+				if (paymentResult.needsAuthorization) {
+					console.log('Re-authorization needed - redirecting to payment modal');
+					return client.redirect(302, `/payment/auth?redirect=${encodeURIComponent(normalizedUrl)}&amount=${paymentRequest.amount}&reason=${paymentResult.reason}`);
+				}
+
+				clientResponse.status(402).send({ error: paymentResult.error || 'Payment failed' });
 				return;
 			}
 

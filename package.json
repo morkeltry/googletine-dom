@@ -7,7 +7,9 @@
   "dependencies": {
     "cookie-parser": "^1.4.6",
     "express": "^4.18.2",
-    "puppeteer": "^25.1.0"
+    "mppx": "^0.7.0",
+    "puppeteer": "^25.1.0",
+    "viem": "^2.52.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

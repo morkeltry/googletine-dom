@@ -5,6 +5,11 @@ import 'path';
 import cookieParser from 'cookie-parser';
 import forwardRequest from './forwardRequest.js';
 import { constants } from '../constants.js';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import * as auth from '../../shared/payments/authorization.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const server = express();
 const { port } = constants;
@@ -18,6 +23,9 @@ server.disable('etag');
 server.use(express.json());
 server.use(cookieParser());
 server.use(express.urlencoded({ extended: true }));
+
+// Serve static files for payment UI
+server.use('/payment', express.static(join(__dirname, '../public/payment')));
 
 // Request logging
 server.use((req, res, next) => {
@@ -64,7 +72,11 @@ server.get('/', (req, res) => {
 		endpoints: {
 			request: 'GET /request?url=<encoded-url> or GET /request/<url>',
 			request_with_persona: 'GET /request/<url>?persona=<id>',
-			health: 'GET /health'
+			health: 'GET /health',
+			payment_auth: 'GET /payment/auth - Payment authorization modal',
+			payment_authorize: 'POST /payment/authorize - Authorize payment',
+			payment_status: 'GET /payment/status/:sessionId - Check payment status',
+			payment_check: 'GET /payment/auth/check - Check authorization status'
 		},
 		examples: [
 			'GET /request/https://youtube.com/watch?v=123',
@@ -72,6 +84,85 @@ server.get('/', (req, res) => {
 			'GET /request?url=https://youtube.com/watch?v=123&persona=abc123'
 		]
 	});
+});
+
+// ---- Payment Endpoints ----
+
+// Serve payment authorization modal
+server.get('/payment/auth', (req, res) => {
+	res.sendFile(join(__dirname, '../public/payment/index.html'));
+});
+
+// Payment authorization API
+server.post('/payment/authorize', async (req, res) => {
+	try {
+		const { userId, amount } = req.body;
+
+		if (!userId || !amount) {
+			return res.status(400).json({
+				success: false,
+				error: 'userId and amount are required'
+			});
+		}
+
+		// Validate and create authorization
+		const result = auth.createAuthorization(userId, amount);
+
+		if (result.success) {
+			console.log(`[Payment] Created authorization for user ${userId}: ${amount} units`);
+			res.json(result);
+		} else {
+			res.status(400).json(result);
+		}
+	} catch (error) {
+		console.error('[Payment] Authorization error:', error.message);
+		res.status(500).json({
+			success: false,
+			error: error.message
+		});
+	}
+});
+
+// Authorization status check
+server.get('/payment/auth/check', (req, res) => {
+	try {
+		const userId = req.query.userId || req.cookies.userId;
+
+		if (!userId) {
+			return res.json({
+				hasAuthorization: false,
+				message: 'No user ID provided'
+			});
+		}
+
+		const status = auth.getAuthorizationStatus(userId);
+		res.json(status);
+	} catch (error) {
+		console.error('[Payment] Status check error:', error.message);
+		res.status(500).json({
+			success: false,
+			error: error.message
+		});
+	}
+});
+
+// Payment status (for debugging)
+server.get('/payment/status/:sessionId', (req, res) => {
+	try {
+		// This would check payment status by session ID
+		// For now, return a mock response
+		res.json({
+			sessionId: req.params.sessionId,
+			status: 'active',
+			message: 'Payment session active'
+		});
+	} catch (error) {
+		console.error('[Payment] Status error:', error.message);
+		res.status(500).json({
+			success: false,
+			error: error.message
+		});
+	}
 });
 
 export default server;
