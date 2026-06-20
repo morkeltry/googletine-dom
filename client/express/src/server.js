@@ -25,7 +25,7 @@ server.use(cookieParser());
 server.use(express.urlencoded({ extended: true }));
 
 // Serve static files for payment UI
-server.use('/payment', express.static(join(__dirname, '../public/payment')));
+server.use('/payment', express.static(join(__dirname, '../../public/payment')));
 
 // Request logging
 server.use((req, res, next) => {
@@ -90,7 +90,7 @@ server.get('/', (req, res) => {
 
 // Serve payment authorization modal
 server.get('/payment/auth', (req, res) => {
-	res.sendFile(join(__dirname, '../public/payment/index.html'));
+	res.sendFile(join(__dirname, '../../public/payment/index.html'));
 });
 
 // Payment authorization API
