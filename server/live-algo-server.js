@@ -271,6 +271,9 @@ app.use(express.static(join(__dirname, 'public')));
 // AlgoMate agent: state + console endpoints (step 1)
 mountAgent(app);
 
+// the marketplace page (also reachable via express.static at /marketplace.html)
+app.get('/marketplace', (req, res) => res.sendFile(join(__dirname, 'public', 'marketplace.html')));
+
 // Root route - explicitly serve the main page
 app.get('/', (req, res) => {
   res.sendFile(join(__dirname, 'public', 'index.html'));

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AlgoMate — Marketplace</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='24' y2='24' gradientUnits='userSpaceOnUse'%3E%3Cstop offset='0' stop-color='%232d2d2d'/%3E%3Cstop offset='1' stop-color='%23050505'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='24' height='24' rx='6.5' fill='url(%23g)'/%3E%3Cpath fill='%23fff' fill-rule='evenodd' d='M10.8 4.2H13.2L20.4 20H16.7L15 16.2H9L7.3 20H3.6ZM10.4 9.4V14.6L14.6 12Z'/%3E%3C/svg%3E" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#ffffff; --ink:#0a0a0a; --ink-2:#3f3f3f; --ink-3:#717171;
+    --line:#ececec; --line-2:#d6d6d6; --fill:#0a0a0a; --ease:cubic-bezier(.16,1,.3,1);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+  ::selection{background:var(--ink);color:var(--bg);}
+  .wrap{max-width:1240px;margin:0 auto;padding:0 28px;}
+  .ic{width:1em;height:1em;display:inline-block;vertical-align:-.13em;flex:none;}
+
+  /* top bar (shared) */
+  .top{position:sticky;top:0;z-index:100;background:color-mix(in srgb,var(--bg) 85%,transparent);backdrop-filter:blur(9px);border-bottom:1px solid var(--line);}
+  .top .wrap{display:flex;align-items:center;gap:26px;height:64px;}
+  .brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:inherit;}
+  .glyph{width:28px;height:28px;flex:none;display:block;}
+  .glyph svg{width:100%;height:100%;display:block;}
+  .brand b{font-weight:700;font-size:17px;letter-spacing:-.03em;}
+  .nav{display:flex;gap:22px;}
+  .nav a{text-decoration:none;color:var(--ink-3);font-weight:500;font-size:14.5px;transition:color .18s var(--ease);}
+  .nav a:hover{color:var(--ink);} .nav a.active{color:var(--ink);}
+  .live{display:inline-flex;align-items:center;gap:8px;margin-left:auto;font-size:12.5px;font-weight:500;color:var(--ink-2);line-height:1;white-space:nowrap;}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 0 rgba(10,10,10,.3);animation:livepulse 2.2s ease-out infinite;}
+  @keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(10,10,10,.32)}70%{box-shadow:0 0 0 6px rgba(10,10,10,0)}100%{box-shadow:0 0 0 0 rgba(10,10,10,0)}}
+  @media (max-width:560px){.nav{gap:16px;} .live{display:none;}}
+
+  /* hero */
+  header{padding:64px 0 8px;}
+  header h1{font-size:clamp(40px,7.5vw,76px);font-weight:800;letter-spacing:-.038em;line-height:.97;text-wrap:balance;max-width:15ch;}
+  header .sub{margin-top:20px;font-size:clamp(16px,1.9vw,20px);color:var(--ink-2);max-width:54ch;text-wrap:pretty;}
+  header .sub b{color:var(--ink);font-weight:600;}
+  .enter{opacity:0;transform:translateY(14px);animation:enter .7s var(--ease) forwards;}
+  .enter.d1{animation-delay:.07s;}.enter.d2{animation-delay:.15s;}
+  @keyframes enter{to{opacity:1;transform:none;}}
+
+  .section{padding:40px 0;}
+  .sechead{display:flex;align-items:baseline;gap:12px;margin-bottom:20px;}
+  .sechead h2{font-size:22px;font-weight:700;letter-spacing:-.02em;}
+  .sechead .count{font-size:13px;color:var(--ink-3);}
+
+  /* persona grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px;}
+  .pcard{display:flex;flex-direction:column;gap:4px;text-decoration:none;color:inherit;background:var(--bg);border:1px solid var(--line-2);border-radius:14px;padding:18px;transition:transform .18s var(--ease),border-color .18s var(--ease),box-shadow .18s var(--ease);position:relative;min-height:138px;}
+  a.pcard:hover{transform:translateY(-3px);border-color:var(--ink);box-shadow:0 16px 30px -22px rgba(0,0,0,.4);}
+  .pico{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;background:var(--ink);color:#fff;font-weight:700;font-size:16px;margin-bottom:10px;}
+  .pico .ic{width:20px;height:20px;}
+  .pname{font-weight:700;font-size:16px;letter-spacing:-.01em;}
+  .pdesc{font-size:13px;color:var(--ink-3);line-height:1.4;flex:1;}
+  .ppill{align-self:flex-start;margin-top:10px;font-size:11px;font-weight:600;letter-spacing:.02em;padding:4px 10px;border-radius:999px;}
+  .ppill.live{background:var(--ink);color:#fff;}
+  .pcard.soon{border-color:var(--line);background:#fcfcfc;}
+  .pcard.soon .pico{background:#ededed;color:var(--ink-3);}
+  .pcard.soon .pname{color:var(--ink-2);}
+  .pcard.soon .pdesc{color:#9a9a9a;}
+  .pcard.soon .ppill{background:#f0f0f0;color:var(--ink-3);}
+  .open{position:absolute;top:16px;right:16px;color:var(--ink-3);opacity:0;transition:opacity .18s var(--ease),transform .25s var(--ease);}
+  .open .ic{width:16px;height:16px;}
+  a.pcard:hover .open{opacity:1;transform:translate(2px,-2px);}
+
+  /* buy/sell */
+  .econ{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:640px){.econ{grid-template-columns:1fr;}}
+  .ecard{border:1px solid var(--line);background:#fcfcfc;border-radius:16px;padding:24px;position:relative;}
+  .ecard h3{font-size:19px;font-weight:700;letter-spacing:-.02em;color:var(--ink-2);display:flex;align-items:center;gap:10px;}
+  .ecard h3 .ic{width:20px;height:20px;color:var(--ink-3);}
+  .ecard p{font-size:14px;color:#9a9a9a;margin-top:8px;max-width:42ch;}
+  .ecard .ppill{display:inline-block;margin-top:14px;background:#f0f0f0;color:var(--ink-3);font-size:11px;font-weight:600;padding:4px 11px;border-radius:999px;}
+
+  footer{padding:40px 0 64px;margin-top:24px;border-top:1px solid var(--line);}
+  footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;color:var(--ink-3);font-size:13px;}
+  footer a{color:var(--ink-2);text-decoration:none;}footer a:hover{color:var(--ink);}
+
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}.enter{opacity:1!important;transform:none!important;}}
+</style>
+</head>
+<body>
+<div class="top"><div class="wrap">
+  <a class="brand" href="/"><span class="glyph" id="gBrand"></span><b>AlgoMate</b></a>
+  <nav class="nav">
+    <a href="/marketplace" class="active">Marketplace</a>
+    <a href="/agent">Agent</a>
+  </nav>
+  <div class="live"><span class="dot"></span> live</div>
+</div></div>
+
+<header><div class="wrap">
+  <h1 class="enter">A marketplace of algorithms.</h1>
+  <p class="sub enter d1">Pick the feed that fits the you of the moment. <b>Two lenses are live today</b> — dozens more on the way, and soon you'll buy and sell your own.</p>
+</div></header>
+
+<main class="wrap">
+  <section class="section">
+    <div class="sechead enter d2"><h2>Personas</h2><span class="count" id="pcount"></span></div>
+    <div class="grid" id="grid"></div>
+  </section>
+
+  <section class="section">
+    <div class="sechead"><h2>The economy</h2><span class="count">soon</span></div>
+    <div class="econ">
+      <div class="ecard">
+        <h3><span id="iBuy"></span> Buy an algorithm</h3>
+        <p>Browse feeds other people have crafted and rent the one you want — pay by the click, over MPP.</p>
+        <span class="ppill">Coming soon</span>
+      </div>
+      <div class="ecard">
+        <h3><span id="iSell"></span> Sell your algorithm</h3>
+        <p>Publish a lens you've tuned and earn every time someone rents your feed.</p>
+        <span class="ppill">Coming soon</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  <span>Two algorithms live. Forty-eight on the way. An economy after that.</span>
+  <a href="/">← Back to the app</a>
+</div></footer>
+
+<script>
+const IC = {
+  logo: '<svg viewBox="0 0 24 24"><defs><linearGradient id="amg" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#2f2f2f"/><stop offset="1" stop-color="#050505"/></linearGradient></defs><rect width="24" height="24" rx="6.5" fill="url(#amg)"/><rect x=".6" y=".6" width="22.8" height="22.8" rx="6" fill="none" stroke="rgba(255,255,255,.08)"/><path fill="#fff" fill-rule="evenodd" d="M10.8 4.2H13.2L20.4 20H16.7L15 16.2H9L7.3 20H3.6ZM10.4 9.4V14.6L14.6 12Z"/></svg>',
+  code: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
+  cat:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17z"/></svg>',
+  arrowUR:'<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>',
+  cart: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2.5 3h2l2.2 12.1a1.5 1.5 0 0 0 1.5 1.2h8.4a1.5 1.5 0 0 0 1.5-1.2L21 7H6"/></svg>',
+  tag:  '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 11.3V4.5A1 1 0 0 1 4.5 3.5h6.8a2 2 0 0 1 1.4.6l7.3 7.3a2 2 0 0 1 0 2.8l-5.9 5.9a2 2 0 0 1-2.8 0L4.1 12.7a2 2 0 0 1-.6-1.4Z"/><circle cx="8" cy="8" r="1.2"/></svg>',
+};
+
+const $ = id => document.getElementById(id);
+$('gBrand').innerHTML = IC.logo;
+$('iBuy').innerHTML = IC.cart;
+$('iSell').innerHTML = IC.tag;
+
+const ACTIVE = [
+  { name:'Developer', desc:'Fireship, ThePrimeagen & the dev rabbit hole', icon: IC.code, lens:'dev' },
+  { name:'Cat Lover', desc:'Funny cats and cozy late-night kittens', icon: IC.cat, lens:'cat' },
+];
+const SOON = [
+  ['Home Cook','Recipes, techniques, kitchen wins'],['Indie Musician','Bedroom production & songwriting'],
+  ['History Buff','Deep dives into the past'],['Startup Founder','Building, shipping, raising'],
+  ['Fitness Coach','Training, form, real progress'],['Film Buff','Cinema, criticism, analysis'],
+  ['Stoic','Calm, focus, philosophy'],['Gardener','Plants, soil, slow growth'],
+  ['Markets','Investing & personal finance'],['Stand-up','Comedy sets & specials'],
+  ['Jazz Head','Standards, solos, vinyl'],['Stargazer','Astronomy & the cosmos'],
+  ['Minimalist','Less, but better'],['Car Enthusiast','Builds, reviews, drives'],
+  ['Polyglot','Learn a new language'],['True Crime','Cases, mysteries, deep dives'],
+  ['Maker','DIY builds & repairs'],['Yoga & Calm','Breath, stretch, reset'],
+  ['Wanderer','Travel & far-off places'],['Chess','Openings, tactics, endgames'],
+  ['Anime','Series, films & lore'],['Sneakerhead','Drops, history, hype'],
+  ['Photographer','Light, composition, gear'],['Climber','Routes, outdoors, send'],
+  ['Sci-Fi','Worlds, futures, big ideas'],['Painter','Brushwork & color'],
+  ['Woodworker','Joinery & shop builds'],['New Parent','Babies, sleep, sanity'],
+  ['Productivity','Systems & deep work'],['ASMR & Sleep','Whispered, slow, calm'],
+  ['Football','Tactics & highlights'],['Motorsport','F1 & racing'],
+  ['Beekeeper','Hives, honey & bees'],['Retro Tech','Old machines, new love'],
+  ['Modular Synth','Patches & textures'],['Baker','Bread, pastry, sourdough'],
+  ['Mindful','Meditation & presence'],['Streetwear','Fits, drops, culture'],
+  ['AI Research','Papers & frontier models'],['Birder','Birds, calls & patience'],
+  ['Retro Gaming','Pixels & classics'],['Architecture','Buildings & space'],
+  ['Coffee Geek','Beans, brews & gear'],['Poet','Verse & spoken word'],
+  ['Documentary','Real stories, told deep'],['Keyboards','Mechanical & custom'],
+  ['Lo-fi Night','Beats to relax & study'],['Trivia','Facts, quizzes, the obscure'],
+];
+
+const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const cards = [];
+ACTIVE.forEach(p => cards.push(`
+  <a class="pcard" href="/?lens=${p.lens}">
+    <span class="open">${IC.arrowUR}</span>
+    <span class="pico">${p.icon}</span>
+    <span class="pname">${esc(p.name)}</span>
+    <span class="pdesc">${esc(p.desc)}</span>
+    <span class="ppill live">Active</span>
+  </a>`));
+SOON.forEach(([name,desc]) => cards.push(`
+  <div class="pcard soon">
+    <span class="pico">${esc(name[0])}</span>
+    <span class="pname">${esc(name)}</span>
+    <span class="pdesc">${esc(desc)}</span>
+    <span class="ppill">Coming soon</span>
+  </div>`));
+$('grid').innerHTML = cards.join('');
+$('pcount').textContent = `${ACTIVE.length} live · ${SOON.length} coming soon`;
+</script>
+</body>
+</html>
