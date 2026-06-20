@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>AlgoMate — Choose your algorithm</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%230a0a0a'/%3E%3Cg fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 18 11.4 7'/%3E%3Cpath d='M18 18 12.6 7'/%3E%3Cpath d='M8.3 14h7.4'/%3E%3C/g%3E%3Ccircle cx='12' cy='5.2' r='1.6' fill='%23fff'/%3E%3C/svg%3E" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
@@ -32,10 +33,9 @@
   .agentlink .ic{width:15px;height:15px;transition:transform .25s var(--ease);}
   .agentlink:hover{background:var(--ink);color:var(--bg);}
   .agentlink:hover .ic{transform:translate(2px,-2px);}
-  .live{display:flex;align-items:center;gap:8px;margin-left:auto;font-size:12px;font-weight:500;color:var(--ink-2);}
-  .live .dot{width:7px;height:7px;border-radius:50%;background:var(--ink);position:relative;}
-  .live .dot::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--ink);opacity:.4;animation:ping 2.4s ease-out infinite;}
-  @keyframes ping{0%{transform:scale(.6);opacity:.5}100%{transform:scale(1.9);opacity:0}}
+  .live{display:inline-flex;align-items:center;gap:8px;margin-left:auto;font-size:12.5px;font-weight:500;color:var(--ink-2);line-height:1;white-space:nowrap;}
+  .live .dot{width:8px;height:8px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 0 rgba(10,10,10,.3);animation:livepulse 2.2s ease-out infinite;}
+  @keyframes livepulse{0%{box-shadow:0 0 0 0 rgba(10,10,10,.32)}70%{box-shadow:0 0 0 6px rgba(10,10,10,0)}100%{box-shadow:0 0 0 0 rgba(10,10,10,0)}}
 
   /* hero — the one message */
   header{padding:78px 0 30px;}
@@ -166,11 +166,7 @@
     </div>
   </div>
 
-  <div class="statusbar enter d3">
-    <div class="ctx"><span class="k">now showing</span><span class="v" id="ctx">warming up…</span></div>
-    <div class="busy" id="busy"><span class="spin"></span> <span id="busytxt">driving the live session…</span></div>
-  </div>
-  <div class="history" id="history" style="display:none;"></div>
+  <div class="history enter d3" id="history" style="display:none;"></div>
 </div></header>
 
 <main class="wrap">
@@ -199,7 +195,7 @@
 <script>
 /* ---- inline SVG icon set (monochrome line icons, inherit currentColor) ---- */
 const IC = {
-  bolt:   '<svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2 4.5 13.2A1 1 0 0 0 5.3 14.8H11l-1 7.2 8.5-11.2a1 1 0 0 0-.8-1.6H12l1-6.4Z"/></svg>',
+  logo:   '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 19 11.4 6.6"/><path d="M18.5 19 12.6 6.6"/><path d="M8 14.3h8"/><circle cx="12" cy="4.8" r="1.7" fill="currentColor" stroke="none"/></svg>',
   code:   '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
   cat:    '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5c.67 0 1.35.09 2 .26 1.78-2 5.03-2.84 6.42-2.26 1.4.58-.42 7-.42 7 .57 1.07 1 2.24 1 3.44C21 17.9 16.97 21 12 21s-9-3-9-7.56c0-1.25.5-2.4 1-3.44 0 0-1.89-6.42-.5-7 1.39-.58 4.72.23 6.5 2.23A9.04 9.04 0 0 1 12 5Z"/><path d="M8 14v.5M16 14v.5M11.25 16.25h1.5L12 17z"/></svg>',
   lens:   '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg>',
@@ -218,14 +214,14 @@ const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g
 const $ = id => document.getElementById(id);
 
 // place static icons
-$('gBrand').innerHTML = IC.bolt;
+$('gBrand').innerHTML = IC.logo;
 $('iAgent').innerHTML = IC.arrowUR;
 $('iSearch').innerHTML = IC.search;
 $('iYt').innerHTML = IC.arrowUR;
 $('iWatch').innerHTML = IC.arrowR;
 $('mClose').innerHTML = IC.close;
 
-function setBusy(on, txt){ $('busy').classList.toggle('on', on); if(txt) $('busytxt').textContent = txt; }
+function setBusy(on, txt){ const b=$('busy'); if(!b) return; b.classList.toggle('on', on); if(txt) $('busytxt').textContent = txt; }
 function setMask(on, txt){ $('feedmask').classList.toggle('on', on); if(txt) $('maskTxt').textContent = txt; }
 
 async function api(path, body){
@@ -245,7 +241,6 @@ function renderTabs(){
 }
 
 function renderStatus(){
-  $('ctx').innerHTML = esc(state.context).replace(/"([^"]+)"/, '<em>“$1”</em>');
   const h = $('history');
   const isHome = (state.context||'').startsWith('home');
   if(isHome && state.sources && state.sources.length){
