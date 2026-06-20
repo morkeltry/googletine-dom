@@ -104,7 +104,7 @@
       <button class="btn lens" data-lens="cat">🐱 Cat Lover</button>
       <span class="sep"></span>
       <button class="btn warn" id="pauseBtn">⏸ Pause</button>
-      <button class="btn primary" id="simBtn">▶ Run a cycle</button>
+      <button class="btn primary" id="simBtn">🧠 Let the agent decide</button>
     </div>
     <div class="paused-flag" id="pausedFlag">⏸ paused — you’re in control. The agent won’t act until you resume.</div>
   </div>
@@ -154,7 +154,7 @@ function prepend(e){
 // live stream
 function connect(){
   const es = new EventSource('/api/agent/stream');
-  es.addEventListener('snapshot', ev => { const s = JSON.parse(ev.data); renderState(s); renderTimeline(s.decisions); $('live').classList.add('on'); $('liveTxt').textContent = 'live'; });
+  es.addEventListener('snapshot', ev => { const s = JSON.parse(ev.data); renderState(s); renderTimeline(s.decisions); $('live').classList.add('on'); $('liveTxt').textContent = s.agent ? ('live · ' + (s.agent.hasKey ? s.agent.model : 'rule-based')) : 'live'; });
   es.addEventListener('decision', ev => { const e = JSON.parse(ev.data); prepend(e); fetch('/api/agent/state').then(r=>r.json()).then(renderState); });
   es.onerror = () => { $('live').classList.remove('on'); $('liveTxt').textContent = 'reconnecting…'; };
 }
@@ -164,7 +164,10 @@ connect();
 const post = (path, body) => fetch(path, {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body||{})}).then(r=>r.json()).then(renderState);
 document.querySelectorAll('.btn.lens').forEach(b => b.addEventListener('click', () => post('/api/agent/lens', {lens:b.dataset.lens, reason:'Manual override by you'})));
 $('pauseBtn').addEventListener('click', () => post('/api/agent/pause', {paused: !(snap && snap.paused)}));
-$('simBtn').addEventListener('click', () => post('/api/agent/simulate'));
+$('simBtn').addEventListener('click', async () => {
+  const b = $('simBtn'); const orig = b.textContent; b.textContent = '🧠 thinking…'; b.disabled = true;
+  try { await post('/api/agent/tick'); } catch(e){} finally { b.textContent = orig; b.disabled = false; }
+});
 </script>
 </body>
 </html>
