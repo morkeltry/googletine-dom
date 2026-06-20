@@ -464,7 +464,15 @@ app.get('/activity/:userId/summary', (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.listen(PORT, () => console.log(`[live] Googletine live-algo server on http://localhost:${PORT}`));
+app.listen(PORT, () => {
+  console.log(`[live] Googletine live-algo server on http://localhost:${PORT}`);
+  // pre-warm the lenses in the background (sequentially, to stay light on memory)
+  // so the first visitor gets an instant feed instead of the ~minute cold start.
+  setTimeout(async () => {
+    try { await ensure('dev'); await ensure('cat'); console.log('[live] lenses pre-warmed'); }
+    catch (e) { console.error('[live] pre-warm failed:', e.message); }
+  }, 1500);
+});
 
 // Add port getter for compatibility with existing startup script
 app.get('port', () => PORT);
